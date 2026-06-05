@@ -6,6 +6,11 @@
     "wrangler": "^4.98.0"
   },
   "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
     "generate-types": "wrangler types"
   },
   "overrides": {
