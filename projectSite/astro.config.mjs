@@ -1,4 +1,7 @@
 import { defineConfig } from 'astro/config';
 
-// https://astro.build
-export default defineConfig({});
+// Force clean static build configuration
+export default defineConfig({
+  output: 'static',
+  adapter: undefined
+});
