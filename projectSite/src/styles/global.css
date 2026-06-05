@@ -43,7 +43,7 @@ a:hover {
 
 /* --- Code Block UI Styles --- */
 .code-block-wrapper {
-  background-color: var(--card-bg);
+  background-color: #000000;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   margin: 1.5rem 0;
@@ -54,12 +54,23 @@ a:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #050505;
+  background-color: var(--card-bg);
   padding: 0.5rem 1rem;
   border-bottom: 1px solid var(--border-color);
   font-family: monospace;
   font-size: 0.85rem;
   color: #9CA3AF;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.code-block-header:hover {
+  background-color: #111111;
+}
+
+.code-block-header:hover .collapse-icon {
+  color: var(--accent-color);
 }
 
 .code-lang {
@@ -70,6 +81,7 @@ a:hover {
 
 .code-actions {
   display: flex;
+  align-items: center;
   gap: 1rem;
 }
 
@@ -88,19 +100,41 @@ a:hover {
   color: var(--accent-color);
 }
 
+.collapse-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9CA3AF;
+  transition: transform 0.3s ease, color 0.2s ease;
+}
+
+/* Rotate the arrow 180 degrees when collapsed */
+.collapse-icon.is-collapsed {
+  transform: rotate(180deg);
+}
+
+/* CSS Grid used for smooth height animation */
+.code-block-grid {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.3s ease-in-out;
+}
+
+.code-block-grid.is-collapsed {
+  grid-template-rows: 0fr;
+}
+
 .code-block-content {
-  transition: max-height 0.3s ease;
+  min-height: 0; /* Required for grid animation to work */
+  overflow: hidden;
 }
 
-.code-block-content.is-collapsed {
-  display: none;
-}
-
-.code-block-content pre {
+/* Override highlight.js default background to match AMOLED theme */
+.code-block-content pre, .hljs {
   margin: 0;
   padding: 1rem;
   overflow-x: auto;
-  background: transparent !important; /* Overrides default hljs background */
+  background: #000000 !important; 
 }
 
 @media (max-width: 768px) { 
