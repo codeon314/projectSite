@@ -1,38 +1,35 @@
 ---
-import { getCollection } from 'astro:content';
-
-// This handles the automatic routing for your projects folder
-export async function getStaticPaths() {
-  const projectEntries = await getCollection('projects');
-  return projectEntries.map(entry => ({
-    params: { slug: entry.id }, // Uses the filename as the URL slug
-    props: { entry },
-  }));
-}
-
-const { entry } = Astro.props;
 import { promises as fs } from 'fs';
 import path from 'path';
 import { marked } from 'marked';
 import Layout from '../../layouts/Layout.astro';
-import { fetchAndCache } from '../../lib/cache.js'; // <-- Import the caching function
+import { fetchAndCache } from '../../lib/cache.js';
 
-const { slug } = Astro.params;
-let project;
+export async function getStaticPaths() {
+  const projectsDir = path.join(process.cwd(), 'src/content/projects');
+  const projectFilenames = await fs.readdir(projectsDir);
+  
+  const projects = await Promise.all(
+    projectFilenames
+      .filter(file => file.endsWith('.json'))
+      .map(async (file) => {
+        const filePath = path.join(projectsDir, file);
+        const fileContent = await fs.readFile(filePath, 'utf-8');
+        return JSON.parse(fileContent);
+      })
+  );
 
-try {
-  const projectJsonPath = path.join(process.cwd(), `src/content/projects/${slug}.json`);
-  const projectJsonContent = await fs.readFile(projectJsonPath, 'utf-8');
-  project = JSON.parse(projectJsonContent);
-} catch (error) {
-  return new Response(null, { status: 404, statusText: 'Not Found' });
+  return projects.map(project => ({
+    params: { slug: project.slug },
+    props: { project },
+  }));
 }
+
+const { project } = Astro.props;
 
 let readmeContent = '# README could not be fetched.';
 if (project.repoLink) {
   const readmeUrl = `${project.repoLink}/raw/branch/main/README.md`;
-  
-  // Use the caching function instead of a direct fetch
   readmeContent = await fetchAndCache(readmeUrl);
 }
 

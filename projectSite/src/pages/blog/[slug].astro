@@ -1,36 +1,46 @@
 ---
-import { getCollection } from 'astro:content';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { marked } from 'marked';
 import Layout from '../../layouts/Layout.astro';
 
 export async function getStaticPaths() {
-  const posts = await getCollection('blog'); 
+  const blogDir = path.join(process.cwd(), 'src/content/blog');
+  const blogFilenames = await fs.readdir(blogDir);
+  
+  const posts = await Promise.all(
+    blogFilenames
+      .filter(file => file.endsWith('.json'))
+      .map(async (file) => {
+        const filePath = path.join(blogDir, file);
+        const fileContent = await fs.readFile(filePath, 'utf-8');
+        return JSON.parse(fileContent);
+      })
+  );
+
   return posts.map(post => ({
-    params: { slug: post.id },
+    params: { slug: post.slug },
     props: { post },
   }));
 }
 
 // 1. Grab the loaded JSON post data straight from props
 const { post } = Astro.props;
-const postData = post.data;
 
 // 2. Read and parse the corresponding dynamic markdown file cleanly
 const readmeContent = await fs.readFile(
-  path.join(process.cwd(), 'src/content/blog_readmes', postData.readmePath),
+  path.join(process.cwd(), 'src/content/blog_readmes', post.readmePath),
   'utf-8'
 ).catch(() => '# Post content not found');
 
 const parsedReadme = marked.parse(readmeContent);
 ---
-<Layout title={postData.title}>
+<Layout title={post.title}>
   <main class="post-detail">
     <a href="/blog" class="back-link">&larr; Back to Blog</a>
-    <h1>{postData.title}</h1>
+    <h1>{post.title}</h1>
     <div class="meta">
-      <span><strong>Published:</strong> {new Date(postData.date).toDateString()}</span>
+      <span><strong>Published:</strong> {new Date(post.date).toDateString()}</span>
     </div>
     <hr />
     <article set:html={parsedReadme} />
