@@ -41,6 +41,68 @@ a:hover {
   color: #000000;
 }
 
+/* --- Code Block UI Styles --- */
+.code-block-wrapper {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  overflow: hidden;
+}
+
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #050505;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #9CA3AF;
+}
+
+.code-lang {
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+
+.code-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.code-btn {
+  background: none;
+  border: none;
+  color: #9CA3AF;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  transition: color 0.2s ease;
+  padding: 0;
+}
+
+.code-btn:hover {
+  color: var(--accent-color);
+}
+
+.code-block-content {
+  transition: max-height 0.3s ease;
+}
+
+.code-block-content.is-collapsed {
+  display: none;
+}
+
+.code-block-content pre {
+  margin: 0;
+  padding: 1rem;
+  overflow-x: auto;
+  background: transparent !important; /* Overrides default hljs background */
+}
+
 @media (max-width: 768px) { 
   body { 
     padding: 1rem; 

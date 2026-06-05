@@ -11,6 +11,10 @@ const { title } = Astro.props;
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{title}</title>
         <ViewTransitions />
+        
+        <!-- Highlight.js for Syntax Highlighting -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+        <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     </head>
     <body>
         <header>
@@ -141,10 +145,18 @@ const { title } = Astro.props;
     };
 
     if (hamburger && nav && overlay) {
-      hamburger.addEventListener('click', toggleMenu);
-      overlay.addEventListener('click', toggleMenu); // Click outside to close
+      // Remove old listeners to prevent duplicates on ViewTransition navigation
+      hamburger.replaceWith(hamburger.cloneNode(true));
+      overlay.replaceWith(overlay.cloneNode(true));
+      
+      const newHamburger = document.querySelector('.hamburger');
+      const newOverlay = document.querySelector('.overlay');
+
+      newHamburger.addEventListener('click', toggleMenu);
+      newOverlay.addEventListener('click', toggleMenu);
+      
       navLinks.forEach(link => {
-        link.addEventListener('click', () => { // Close menu when a link is clicked
+        link.addEventListener('click', () => {
             if (nav.classList.contains('is-open')) {
                 toggleMenu();
             }
@@ -153,6 +165,77 @@ const { title } = Astro.props;
     }
   }
 
-  // Use Astro's built-in event for navigation
-  document.addEventListener('astro:page-load', setupNav);
+  function setupCodeBlocks() {
+    const pres = document.querySelectorAll('pre');
+    
+    pres.forEach(pre => {
+      // Prevent double-processing if ViewTransitions re-runs
+      if (pre.parentElement.classList.contains('code-block-content')) return;
+
+      const code = pre.querySelector('code');
+      if (!code) return;
+
+      // Extract language from class (e.g., "language-csharp")
+      const langClass = Array.from(code.classList).find(c => c.startsWith('language-'));
+      const lang = langClass ? langClass.replace('language-', '') : 'text';
+
+      // Create UI Elements
+      const wrapper = document.createElement('div');
+      wrapper.className = 'code-block-wrapper';
+
+      const header = document.createElement('div');
+      header.className = 'code-block-header';
+
+      const langSpan = document.createElement('span');
+      langSpan.className = 'code-lang';
+      langSpan.textContent = lang;
+
+      const actions = document.createElement('div');
+      actions.className = 'code-actions';
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'code-btn';
+      copyBtn.textContent = 'Copy';
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(code.innerText).then(() => {
+          copyBtn.textContent = 'Copied!';
+          setTimeout(() => copyBtn.textContent = 'Copy', 2000);
+        });
+      };
+
+      const collapseBtn = document.createElement('button');
+      collapseBtn.className = 'code-btn';
+      collapseBtn.textContent = 'Collapse';
+      
+      const content = document.createElement('div');
+      content.className = 'code-block-content';
+
+      collapseBtn.onclick = () => {
+        content.classList.toggle('is-collapsed');
+        collapseBtn.textContent = content.classList.contains('is-collapsed') ? 'Expand' : 'Collapse';
+      };
+
+      // Assemble
+      actions.appendChild(copyBtn);
+      actions.appendChild(collapseBtn);
+      header.appendChild(langSpan);
+      header.appendChild(actions);
+
+      pre.parentNode.insertBefore(wrapper, pre);
+      content.appendChild(pre);
+      wrapper.appendChild(header);
+      wrapper.appendChild(content);
+
+      // Apply Syntax Highlighting
+      if (window.hljs) {
+        hljs.highlightElement(code);
+      }
+    });
+  }
+
+  // Use Astro's built-in event for navigation to initialize scripts
+  document.addEventListener('astro:page-load', () => {
+    setupNav();
+    setupCodeBlocks();
+  });
 </script>
