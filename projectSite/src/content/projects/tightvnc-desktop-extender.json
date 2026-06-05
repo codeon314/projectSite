@@ -1,7 +1,7 @@
 {
-  "slug": "tightvnc-desktop-extender",
-  "projectName": "TightVNC Desktop Extender",
+  "slug": "windos",
+  "projectName": "WinDoS",
   "latestRelease": "v1.0.0",
-  "repoLink": "http://gitea.playit.plus:31774/mastercodeon314/tightvnc-desktop-extender",
-  "readmePath": "tightvnc-desktop-extender.md"
+  "repoLink": "https://git.churchofmalware.org/mastercodeon/WinDoS",
+  "readmePath": "windos.md"
 }
