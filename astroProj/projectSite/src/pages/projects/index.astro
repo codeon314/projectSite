@@ -1,0 +1,46 @@
+<!-- Directory Structure: .\src\pages\projects\index.astro -->
+---
+import { promises as fs } from 'fs';
+import path from 'path';
+import Layout from '../../layouts/Layout.astro';
+
+// Define the absolute path to your projects content directory
+const projectsDir = path.join(process.cwd(), 'src/content/projects');
+
+// Read all filenames from the directory
+const projectFilenames = await fs.readdir(projectsDir);
+
+// Filter for .json files and read the content of each one
+const projects = await Promise.all(
+  projectFilenames
+    .filter(file => file.endsWith('.json'))
+    .map(async (file) => {
+      const filePath = path.join(projectsDir, file);
+      const fileContent = await fs.readFile(filePath, 'utf-8');
+      return JSON.parse(fileContent);
+    })
+);
+---
+<Layout title="Projects">
+    <main>
+        <h1>Projects</h1>
+        <div class="project-grid">
+            {projects.map(project => (
+                <a href={`/projects/${project.slug}`} class="project-card">
+                    <h3>{project.projectName}</h3>
+                    <p>{project.description}</p>
+                    <span>Latest: {project.latestRelease}</span>
+                </a>
+            ))}
+        </div>
+    </main>
+</Layout>
+
+<!-- Your existing styles remain the same -->
+<style>
+  .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+  .project-card { background-color: var(--card-bg); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); transition: transform 0.2s ease, border-color 0.2s ease; display: block; }
+  .project-card:hover { transform: translateY(-5px); border-color: var(--accent-color); color: var(--text-color); }
+  .project-card h3 { margin-top: 0; color: var(--accent-color); } .project-card p { color: #D1D5DB; }
+  .project-card span { font-size: 0.9rem; color: #9CA3AF; }
+</style>

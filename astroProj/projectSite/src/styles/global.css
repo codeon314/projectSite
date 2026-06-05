@@ -1,0 +1,11 @@
+/* Directory Structure: .\src\styles\global.css */
+:root {
+  --bg-color: #111827; --card-bg: #1F2937; --text-color: #E5E7EB;
+  --accent-color: #38BDF8; --border-color: rgba(255, 255, 255, 0.1);
+}
+html { background-color: var(--bg-color); color: var(--text-color); font-family: system-ui, sans-serif; scroll-behavior: smooth; }
+body { margin: 0; padding: 2rem; }
+main { max-width: 800px; margin: auto; }
+a { color: var(--accent-color); text-decoration: none; transition: color 0.2s ease; }
+a:hover { color: white; }
+@media (max-width: 768px) { body { padding: 1rem; } }

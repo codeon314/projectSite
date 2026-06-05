@@ -1,0 +1,158 @@
+---
+import { ViewTransitions } from 'astro:transitions';
+import '../styles/global.css';
+import '../lib/cache.js'; // <-- ADD THIS LINE to trigger the pre-caching on startup
+const { title } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{title}</title>
+        <ViewTransitions />
+    </head>
+    <body>
+        <header>
+            <button class="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="main-nav">
+                <span class="line"></span>
+                <span class="line"></span>
+                <span class="line"></span>
+            </button>
+            <nav id="main-nav">
+                <a href="/">Home</a>
+                <a href="/projects">Projects</a>
+                <a href="/blog">Blog</a>
+                <a href="/about">About</a>
+            </nav>
+        </header>
+
+        <!-- This overlay will appear behind the menu to allow closing it by clicking outside -->
+        <div class="overlay"></div>
+
+        <slot />
+    </body>
+</html>
+<style>
+  /* --- DESKTOP STYLES (Default) --- */
+  header {
+    max-width: 800px;
+    margin: 0 auto 2rem auto;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  nav {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 1.1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .hamburger, .overlay {
+    display: none;
+  }
+
+  /* --- MOBILE STYLES (Overrides the desktop styles) --- */
+  @media (max-width: 768px) {
+    header {
+      border-bottom: none;
+      padding-bottom: 0;
+      margin-bottom: 1.5rem; /* Slightly less margin for mobile */
+      max-width: 100%;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: fit-content; /* Make width fit the content */
+      min-width: 200px; /* Optional: set a minimum width */
+      height: 100%;
+      background-color: var(--card-bg);
+      flex-direction: column;
+      justify-content: flex-start; /* Align items to the top */
+      align-items: flex-start; /* Align items to the left */
+      padding: 6rem 3rem 2rem 1.5rem; /* T, R, B, L padding */
+      gap: 2rem;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-in-out;
+      z-index: 1000;
+      border-right: 1px solid var(--border-color);
+    }
+
+    nav.is-open {
+      transform: translateX(0);
+    }
+
+    .hamburger {
+      display: block;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 15px;
+      position: relative; /* Changed for better control */
+      z-index: 1001;
+    }
+
+    .hamburger .line {
+      display: block;
+      width: 25px;
+      height: 3px;
+      background-color: var(--text-color);
+      margin: 5px 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    /* Overlay for clicking outside to close */
+    .overlay {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 999; /* Below the nav, above the content */
+        opacity: 0;
+        pointer-events: none; /* Can't be clicked when hidden */
+        transition: opacity 0.3s ease-in-out;
+    }
+
+    .overlay.is-open {
+        opacity: 1;
+        pointer-events: auto; /* Can be clicked when visible */
+    }
+  }
+</style>
+
+<script>
+  function setupNav() {
+    const hamburger = document.querySelector('.hamburger');
+    const nav = document.querySelector('#main-nav');
+    const overlay = document.querySelector('.overlay');
+    const navLinks = nav.querySelectorAll('a');
+
+    const toggleMenu = () => {
+      const isOpen = nav.classList.toggle('is-open');
+      overlay.classList.toggle('is-open', isOpen);
+      hamburger.setAttribute('aria-expanded', isOpen);
+    };
+
+    if (hamburger && nav && overlay) {
+      hamburger.addEventListener('click', toggleMenu);
+      overlay.addEventListener('click', toggleMenu); // Click outside to close
+      navLinks.forEach(link => {
+        link.addEventListener('click', () => { // Close menu when a link is clicked
+            if (nav.classList.contains('is-open')) {
+                toggleMenu();
+            }
+        });
+      });
+    }
+  }
+
+  // Use Astro's built-in event for navigation
+  document.addEventListener('astro:page-load', setupNav);
+</script>

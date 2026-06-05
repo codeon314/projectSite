@@ -1,0 +1,7 @@
+{
+  "slug": "first-project",
+  "projectName": "My First Awesome CLI Tool",
+  "latestRelease": "v1.0.0",
+  "repoLink": "http://gitea.playit.plus:6103/DaAdmin/First-repo",
+  "readmePath": "first-project.md"
+}

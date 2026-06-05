@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "@astrojs/cloudflare": "^13.6.1",
+    "create-astro": "^4.13.1",
+    "marked": "^16.1.2",
+    "wrangler": "^4.98.0"
+  },
+  "scripts": {
+    "generate-types": "wrangler types"
+  },
+  "overrides": {
+    "vite": "^7"
+  }
+}

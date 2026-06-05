@@ -1,0 +1,63 @@
+---
+import { promises as fs } from 'fs';
+import path from 'path';
+import { marked } from 'marked';
+import Layout from '../../layouts/Layout.astro';
+
+const { slug } = Astro.params;
+let post;
+
+try {
+  const postJsonPath = path.join(process.cwd(), `src/content/blog/${slug}.json`);
+  const postJsonContent = await fs.readFile(postJsonPath, 'utf-8');
+  post = JSON.parse(postJsonContent);
+} catch (error) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
+
+const readmeContent = await fs.readFile(
+  path.join(process.cwd(), 'src/content/blog_readmes', post.readmePath),
+  'utf-8'
+).catch(() => '# Post content not found');
+
+const parsedReadme = marked.parse(readmeContent);
+---
+<Layout title={post.title}>
+  <main class="post-detail">
+    <a href="/blog" class="back-link">&larr; Back to Blog</a>
+    <h1>{post.title}</h1>
+    <div class="meta">
+      <span><strong>Published:</strong> {new Date(post.date).toDateString()}</span>
+    </div>
+    <hr />
+    <article set:html={parsedReadme} />
+  </main>
+</Layout>
+
+<style>
+  .back-link {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    color: #9CA3AF;
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+  .back-link:hover {
+    color: var(--accent-color);
+    text-decoration: underline;
+  }
+  .post-detail .meta {
+    margin: 1rem 0;
+    color: #9CA3AF;
+  }
+  article :global(h1), article :global(h2) {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+  }
+  article :global(pre) {
+    background-color: var(--card-bg);
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+  }
+</style>

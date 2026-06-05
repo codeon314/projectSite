@@ -1,0 +1,24 @@
+<!-- Directory Structure: .\src\pages\index.astro -->
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="Home | My Portfolio">
+    <main>
+        <div class="hero">
+            <h1>Welcome to the DevSpace</h1>
+            <p>Mastercodeon314's personal space where all source code, projects, and data is hosted.</p>
+            <a href="/projects" class="cta-button">View My Projects</a>
+        </div>
+    </main>
+</Layout>
+<style>
+  .hero { text-align: center; padding: 4rem 0; animation: fadeIn 1s ease-in-out; }
+  .hero h1 { font-size: 3rem; margin-bottom: 1rem; }
+  .hero p { font-size: 1.2rem; color: #9CA3AF; margin-bottom: 2rem; }
+  .cta-button { background-color: var(--accent-color); color: var(--bg-color); padding: 0.8rem 1.5rem; border-radius: 8px; font-weight: bold; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .cta-button:hover { transform: scale(1.05); box-shadow: 0 0 15px var(--accent-color); color: var(--bg-color); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @media (max-width: 768px) {
+    .hero { padding: 2rem 0; } .hero h1 { font-size: 2.2rem; } .hero p { font-size: 1rem; }
+  }
+</style>

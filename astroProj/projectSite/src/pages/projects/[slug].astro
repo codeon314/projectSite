@@ -1,0 +1,63 @@
+---
+import { promises as fs } from 'fs';
+import path from 'path';
+import { marked } from 'marked';
+import Layout from '../../layouts/Layout.astro';
+import { fetchAndCache } from '../../lib/cache.js'; // <-- Import the caching function
+
+const { slug } = Astro.params;
+let project;
+
+try {
+  const projectJsonPath = path.join(process.cwd(), `src/content/projects/${slug}.json`);
+  const projectJsonContent = await fs.readFile(projectJsonPath, 'utf-8');
+  project = JSON.parse(projectJsonContent);
+} catch (error) {
+  return new Response(null, { status: 404, statusText: 'Not Found' });
+}
+
+let readmeContent = '# README could not be fetched.';
+if (project.repoLink) {
+  const readmeUrl = `${project.repoLink}/raw/branch/main/README.md`;
+  
+  // Use the caching function instead of a direct fetch
+  readmeContent = await fetchAndCache(readmeUrl);
+}
+
+const parsedReadme = marked.parse(readmeContent);
+---
+<Layout title={project.projectName}>
+    <main class="project-detail">
+        <a href="/projects" class="back-link">&larr; Back to Projects</a>
+        <h1>{project.projectName}</h1>
+        <div class="meta">
+            <span><strong>Latest:</strong> {project.latestRelease}</span>
+            <a href={project.repoLink} target="_blank" class="repo-link">View Source &rarr;</a>
+        </div>
+        <hr />
+        <article set:html={parsedReadme} />
+    </main>
+</Layout>
+
+<style>
+  .back-link {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    color: #9CA3AF;
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+  .back-link:hover {
+    color: var(--accent-color);
+    text-decoration: underline;
+  }
+  .project-detail .meta { display: flex; justify-content: space-between; align-items: center; margin: 1rem 0; flex-wrap: wrap; gap: 1rem; }
+  .repo-link { background-color: var(--card-bg); padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--border-color); text-align: center; }
+  .repo-link:hover { border-color: var(--accent-color); }
+  article :global(h1), article :global(h2) { border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+  article :global(pre) { background-color: var(--card-bg); padding: 1rem; border-radius: 8px; overflow-x: auto; }
+  @media (max-width: 768px) {
+    .project-detail .meta { flex-direction: column; align-items: flex-start; }
+    .repo-link { width: 100%; box-sizing: border-box; }
+  }
+</style>

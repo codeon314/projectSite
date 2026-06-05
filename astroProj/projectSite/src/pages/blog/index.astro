@@ -1,0 +1,104 @@
+---
+import { promises as fs } from 'fs';
+import path from 'path';
+import Layout from '../../layouts/Layout.astro';
+
+const blogDir = path.join(process.cwd(), 'src/content/blog');
+const blogFilenames = await fs.readdir(blogDir);
+
+const posts = await Promise.all(
+  blogFilenames
+    .filter(file => file.endsWith('.json'))
+    .map(async (file) => {
+      const filePath = path.join(blogDir, file);
+      const fileContent = await fs.readFile(filePath, 'utf-8');
+      const post = JSON.parse(fileContent);
+      // Ensure the date is parsed correctly for sorting
+      post.date = new Date(post.date);
+      return post;
+    })
+);
+
+// Get the sort order from the URL query parameters, default to 'newest'
+const urlParams = new URLSearchParams(Astro.url.search);
+const sortBy = urlParams.get('sort') || 'newest';
+
+// Sort the posts based on the selected order
+posts.sort((a, b) => {
+  if (sortBy === 'newest') {
+    return b.date - a.date;
+  } else {
+    return a.date - b.date;
+  }
+});
+---
+<Layout title="Blog">
+  <main>
+    <div class="header-container">
+      <h1>Blog</h1>
+      <div class="sort-options">
+        <span>Sort by:</span>
+        <a href="?sort=newest" class={sortBy === 'newest' ? 'active' : ''}>Newest</a>
+        <a href="?sort=oldest" class={sortBy === 'oldest' ? 'active' : ''}>Oldest</a>
+      </div>
+    </div>
+    <div class="post-grid">
+      {posts.map(post => (
+        <a href={`/blog/${post.slug}`} class="post-card">
+          <h3>{post.title}</h3>
+          <p>{post.description}</p>
+          <span>{post.date.toDateString()}</span>
+        </a>
+      ))}
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .sort-options a {
+    margin-left: 1rem;
+    color: #9CA3AF;
+    text-decoration: none;
+  }
+  .sort-options a.active {
+    color: var(--accent-color);
+    font-weight: bold;
+  }
+  .post-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .post-card {
+    background-color: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+    display: block;
+  }
+  .post-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent-color);
+    color: var(--text-color);
+  }
+  .post-card h3 {
+    margin-top: 0;
+    color: var(--accent-color);
+  }
+  .post-card p {
+    color: #D1D5DB;
+  }
+  .post-card span {
+    font-size: 0.9rem;
+    color: #9CA3AF;
+  }
+</style>
