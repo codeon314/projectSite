@@ -1,4 +1,16 @@
 ---
+import { getCollection } from 'astro:content';
+
+// This handles the automatic routing for your projects folder
+export async function getStaticPaths() {
+  const projectEntries = await getCollection('projects');
+  return projectEntries.map(entry => ({
+    params: { slug: entry.id }, // Uses the filename as the URL slug
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
 import { promises as fs } from 'fs';
 import path from 'path';
 import { marked } from 'marked';

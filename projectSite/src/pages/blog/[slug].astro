@@ -1,4 +1,15 @@
 ---
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  // Astro automatically looks at your files and creates the paths for you
+  const posts = await getCollection('blog'); 
+  return posts.map(post => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+const { post } = Astro.props;
 import { promises as fs } from 'fs';
 import path from 'path';
 import { marked } from 'marked';
