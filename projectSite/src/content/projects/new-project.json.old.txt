@@ -1,7 +1,0 @@
-{
-  "slug": "new-project",
-  "projectName": "The new project!!!",
-  "latestRelease": "v1.0.0",
-  "repoLink": "http://your-gitea-url/your-username/first-project.git",
-  "readmePath": "new-project.md"
-}
