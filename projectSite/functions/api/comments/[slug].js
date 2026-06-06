@@ -103,7 +103,7 @@ export async function onRequestPost({ request, params, env }) {
         return new Response(JSON.stringify({ error: "Illegal characters detected in User ID or length exceeded. Transmission rejected." }), { status: 400 });
     }
 
-    if (!rawText || !textRegex.test(rawText) || rawText.length > 500) {
+    if (!rawText || !textRegex.test(rawText) || rawText.length > 1000) {
         return new Response(JSON.stringify({ error: "Illegal characters detected in Log Entry or length exceeded. Transmission rejected." }), { status: 400 });
     }
 

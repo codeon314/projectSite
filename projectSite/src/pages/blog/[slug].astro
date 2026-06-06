@@ -54,8 +54,11 @@ const parsedReadme = marked.parse(readmeContent);
             <input type="text" id="username" name="username" placeholder="guest_user" required maxlength="50" />
           </div>
           <div class="input-group">
-            <label for="comment-text">Log Entry</label>
-            <textarea id="comment-text" name="text" placeholder="Enter your transmission here..." required maxlength="500" rows="3"></textarea>
+            <div class="label-row">
+              <label for="comment-text">Log Entry</label>
+              <span id="char-counter" class="char-counter">0/1000</span>
+            </div>
+            <textarea id="comment-text" name="text" placeholder="Enter your transmission here..." required maxlength="1000" rows="3"></textarea>
           </div>
           <button type="submit" class="submit-btn" id="submit-btn">Submit Log</button>
         </form>
@@ -295,9 +298,22 @@ const parsedReadme = marked.parse(readmeContent);
     gap: 0.5rem;
   }
 
+  .label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
   .input-group label {
     color: #9CA3AF;
     font-size: 0.9rem;
+    font-family: monospace;
+  }
+
+  .char-counter {
+    color: #9CA3AF;
+    font-size: 0.85rem;
     font-family: monospace;
   }
 
@@ -473,15 +489,21 @@ const parsedReadme = marked.parse(readmeContent);
       clearInterval(window.commentPollInterval);
     }
 
-    // Attach input listeners to clear validation highlights in real-time
+    // Attach input listeners to clear validation highlights and update char counter in real-time
     const usernameInput = document.getElementById('username') as HTMLInputElement;
     const textInput = document.getElementById('comment-text') as HTMLTextAreaElement;
+    const charCounter = document.getElementById('char-counter');
     
     if (usernameInput) {
       usernameInput.addEventListener('input', () => usernameInput.classList.remove('invalid'));
     }
     if (textInput) {
-      textInput.addEventListener('input', () => textInput.classList.remove('invalid'));
+      textInput.addEventListener('input', () => {
+        textInput.classList.remove('invalid');
+        if (charCounter) {
+          charCounter.textContent = `${textInput.value.length}/1000`;
+        }
+      });
     }
 
     async function loadComments(isBackgroundPoll = false) {
@@ -608,6 +630,7 @@ const parsedReadme = marked.parse(readmeContent);
         }
         
         textInput.value = '';
+        if (charCounter) charCounter.textContent = '0/1000';
         await loadComments();
       } catch (err) {
         showToast(err.message || 'Transmission failed. Please try again.');
