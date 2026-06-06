@@ -392,8 +392,17 @@ const parsedReadme = marked.parse(readmeContent);
 
     async function loadComments(isBackgroundPoll = false) {
       try {
-        // Append a timestamp to completely bypass browser caching
-        const res = await fetch(`/api/comments/${slug}?t=${Date.now()}`);
+        // Force the browser to bypass all caches (disk, memory, and network)
+        const res = await fetch(`/api/comments/${slug}?t=${Date.now()}`, {
+          method: 'GET',
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
+        
         if (!res.ok) throw new Error('Failed to fetch');
         const comments = await res.json();
         
@@ -492,8 +501,13 @@ const parsedReadme = marked.parse(readmeContent);
     // Initial load
     loadComments();
 
-    // Start background polling every 5 seconds
-    window.commentPollInterval = setInterval(() => loadComments(true), 5000);
+    // Start background polling every 1 second (Near-Instant)
+    // We check visibilityState so we don't spam the server if the user switches tabs!
+    window.commentPollInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        loadComments(true);
+      }
+    }, 1000);
   }
 
   // Run on initial load and after Astro ViewTransitions
