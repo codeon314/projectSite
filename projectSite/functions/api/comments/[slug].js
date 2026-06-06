@@ -19,9 +19,15 @@ export async function onRequestGet({ params, env }) {
         if (commentsStr) comments = JSON.parse(commentsStr);
     }
 
+    // Return response with aggressive cache-busting headers
     return new Response(JSON.stringify(comments), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        }
     });
 }
 

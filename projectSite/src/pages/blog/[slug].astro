@@ -152,6 +152,7 @@ const parsedReadme = marked.parse(readmeContent);
     border-radius: 20px;
     border: 1px solid var(--border-color);
     font-size: 0.9rem;
+    transition: color 0.3s ease;
   }
 
   .comments-container {
@@ -169,6 +170,12 @@ const parsedReadme = marked.parse(readmeContent);
     display: flex;
     gap: 1.5rem;
     align-items: flex-start;
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .comments-container :global(.comment-avatar) {
@@ -376,17 +383,34 @@ const parsedReadme = marked.parse(readmeContent);
     const activeForm = document.getElementById('comment-form');
 
     const slug = activeForm.dataset.slug;
+    let currentCommentCount = -1;
 
-    async function loadComments() {
+    // Clear any existing polling interval from previous page visits
+    if (window.commentPollInterval) {
+      clearInterval(window.commentPollInterval);
+    }
+
+    async function loadComments(isBackgroundPoll = false) {
       try {
-        const res = await fetch(`/api/comments/${slug}`);
+        // Append a timestamp to completely bypass browser caching
+        const res = await fetch(`/api/comments/${slug}?t=${Date.now()}`);
         if (!res.ok) throw new Error('Failed to fetch');
         const comments = await res.json();
         
+        // Smart DOM Updating: Only rebuild HTML if the number of comments changed
+        if (comments.length === currentCommentCount) return;
+        currentCommentCount = comments.length;
+
         container.innerHTML = '';
         
         // Update the counter
         countDisplay.textContent = `${comments.length} Transmission${comments.length === 1 ? '' : 's'}`;
+        
+        // Flash the counter slightly to indicate an update occurred
+        if (isBackgroundPoll) {
+          countDisplay.style.color = 'var(--accent-color)';
+          setTimeout(() => countDisplay.style.color = '#9CA3AF', 1000);
+        }
 
         if (comments.length === 0) {
           container.innerHTML = '<div class="empty-comments">No logs found. Be the first to transmit.</div>';
@@ -416,7 +440,9 @@ const parsedReadme = marked.parse(readmeContent);
           container.appendChild(div);
         });
       } catch (err) {
-        container.innerHTML = '<div class="error-text">Error establishing connection to log server.</div>';
+        if (!isBackgroundPoll) {
+          container.innerHTML = '<div class="error-text">Error establishing connection to log server.</div>';
+        }
       }
     }
 
@@ -465,8 +491,18 @@ const parsedReadme = marked.parse(readmeContent);
 
     // Initial load
     loadComments();
+
+    // Start background polling every 5 seconds
+    window.commentPollInterval = setInterval(() => loadComments(true), 5000);
   }
 
   // Run on initial load and after Astro ViewTransitions
   document.addEventListener('astro:page-load', setupComments);
+
+  // Clean up the polling interval when navigating away to prevent memory leaks
+  document.addEventListener('astro:before-preparation', () => {
+    if (window.commentPollInterval) {
+      clearInterval(window.commentPollInterval);
+    }
+  });
 </script>
