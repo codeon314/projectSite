@@ -84,18 +84,28 @@ export async function onRequestPost({ request, params, env }) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please wait 30 seconds before transmitting again." }), { status: 429 });
     }
 
-    // 3. Process the Comment
+    // 3. Process and Sanitize the Comment
     const data = await request.json();
 
     if (!data.username || !data.text) {
         return new Response(JSON.stringify({ error: "Missing fields" }), { status: 400 });
     }
 
-    // Basic sanitization to prevent XSS
+    // Server-Side Sanitization
+    // Username: Only Alphanumeric and spaces
+    const cleanUsername = data.username.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 50).trim();
+    
+    // Text: Only Alphanumeric, spaces, and basic punctuation (.,!?'-)
+    const cleanText = data.text.replace(/[^a-zA-Z0-9\s.,!?'-]/g, '').substring(0, 500).trim();
+
+    if (!cleanUsername || !cleanText) {
+        return new Response(JSON.stringify({ error: "Invalid input. Only basic text and numbers are allowed." }), { status: 400 });
+    }
+
     const newComment = {
         id: Date.now().toString(),
-        username: data.username.substring(0, 50).replace(/</g, "&lt;").replace(/>/g, "&gt;"),
-        text: data.text.substring(0, 500).replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+        username: cleanUsername,
+        text: cleanText,
         date: new Date().toISOString()
     };
 
