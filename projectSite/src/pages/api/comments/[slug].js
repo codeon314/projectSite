@@ -1,5 +1,4 @@
-// CRITICAL: This tells Astro to NOT generate this as a static file, 
-// but to compile it into the Cloudflare Worker as a live endpoint.
+// CRITICAL: This tells Astro to compile this specific file into the Cloudflare Worker
 export const prerender = false;
 
 // In-memory fallback for local development if Cloudflare KV is not yet bound

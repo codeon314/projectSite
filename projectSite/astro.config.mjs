@@ -3,14 +3,19 @@ import cloudflare from '@astrojs/cloudflare';
 
 export default defineConfig({
   output: 'static',
-  build: {
-    // Forces Astro to generate about.html instead of about/index.html.
-    // This completely fixes the Cloudflare Worker 404 routing bug!
-    format: 'file'
-  },
   adapter: cloudflare({
     platformProxy: {
       enabled: true
+    },
+    routes: {
+      extend: {
+        // THE BULLETPROOF FIX:
+        // Force Cloudflare to ONLY send /api/ requests to the Worker.
+        // Everything else (/*) bypasses the Worker and is served natively as static HTML.
+        // This completely eliminates the 404 routing bug!
+        include: ['/api/*'],
+        exclude: ['/*']
+      }
     }
   })
 });
