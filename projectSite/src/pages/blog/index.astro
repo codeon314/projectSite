@@ -131,8 +131,7 @@ posts.sort((a, b) => b.date.getTime() - a.date.getTime());
 <script>
   function setupSorting() {
     const grid = document.querySelector('.post-grid');
-    const buttons = document.querySelectorAll('.sort-btn');
-    if (!grid || buttons.length === 0) return;
+    if (!grid) return;
 
     // Check URL for initial sort state (if someone shares a link with ?sort=oldest)
     const params = new URLSearchParams(window.location.search);
@@ -151,8 +150,8 @@ posts.sort((a, b) => b.date.getTime() - a.date.getTime());
       // Re-append elements to the grid in the new order
       cards.forEach(card => grid.appendChild(card));
 
-      // Update active button styling
-      buttons.forEach(btn => {
+      // Update active button styling by querying the CURRENT buttons in the DOM
+      document.querySelectorAll('.sort-btn').forEach(btn => {
         if (btn.dataset.sort === order) {
           btn.classList.add('active');
         } else {
@@ -172,7 +171,7 @@ posts.sort((a, b) => b.date.getTime() - a.date.getTime());
     }
 
     // Add click listeners to the buttons
-    buttons.forEach(btn => {
+    document.querySelectorAll('.sort-btn').forEach(btn => {
       // Clone and replace to prevent duplicate event listeners from ViewTransitions
       const newBtn = btn.cloneNode(true);
       btn.replaceWith(newBtn);
