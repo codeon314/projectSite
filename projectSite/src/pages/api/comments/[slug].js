@@ -1,6 +1,3 @@
-// Opt out of static rendering for this specific endpoint so it runs dynamically
-export const prerender = false;
-
 // In-memory fallback for local development if Cloudflare KV is not yet bound
 const localDevCache = new Map();
 
