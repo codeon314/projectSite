@@ -54,11 +54,9 @@ const parsedReadme = marked.parse(readmeContent);
             <input type="text" id="username" name="username" placeholder="guest_user" required maxlength="50" />
           </div>
           <div class="input-group">
-            <div class="label-row">
-              <label for="comment-text">Log Entry</label>
-              <span id="char-counter" class="char-counter">0/1000</span>
-            </div>
+            <label for="comment-text">Log Entry</label>
             <textarea id="comment-text" name="text" placeholder="Enter your transmission here..." required maxlength="1000" rows="3"></textarea>
+            <span id="char-counter" class="char-counter">0/1000</span>
           </div>
           <button type="submit" class="submit-btn" id="submit-btn">Submit Log</button>
         </form>
@@ -298,13 +296,6 @@ const parsedReadme = marked.parse(readmeContent);
     gap: 0.5rem;
   }
 
-  .label-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-  }
-
   .input-group label {
     color: #9CA3AF;
     font-size: 0.9rem;
@@ -315,6 +306,7 @@ const parsedReadme = marked.parse(readmeContent);
     color: #9CA3AF;
     font-size: 0.85rem;
     font-family: monospace;
+    align-self: flex-end;
   }
 
   .input-group input, .input-group textarea {
