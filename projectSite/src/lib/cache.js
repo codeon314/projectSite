@@ -42,36 +42,3 @@ export async function fetchAndCache(url) {
     return `# Error fetching README.\n\nCould not connect to the repository.`;
   }
 }
-
-/**
- * Finds all project JSON files and warms the cache with their READMEs.
- */
-async function preCacheAllProjects() {
-  console.log('[CACHE] Starting non-blocking pre-cache of all project READMEs...');
-  try {
-    // Use Vite's import.meta.glob to load all JSON files at build time
-    // This completely removes the need for the Node.js 'fs' module
-    const projectModules = import.meta.glob('/src/content/projects/*.json', { eager: true });
-    const projects = Object.values(projectModules).map(m => m.default || m);
-
-    // We use Promise.all to run fetches in parallel for efficiency
-    await Promise.all(
-      projects.map(async (project) => {
-        if (project.repoLink) {
-          const readmeUrl = `${project.repoLink}/raw/branch/main/README.md`;
-          await fetchAndCache(readmeUrl); // Fetch and populate the cache
-        }
-      })
-    );
-    console.log('[CACHE] Pre-caching process completed in the background.');
-  } catch (error)
-  {
-    console.error('[CACHE] Background pre-caching process failed:', error);
-  }
-}
-
-// --- Trigger the pre-caching process on server startup (NON-BLOCKING) ---
-// By REMOVING 'await', we tell the server to START this process
-// but NOT to wait for it to finish. The server can start handling
-// user requests immediately.
-preCacheAllProjects();
