@@ -2,9 +2,178 @@
 ---
 import Layout from '../layouts/Layout.astro';
 ---
-<Layout title="About Me">
-    <main>
-        <h1>About Me</h1>
-        <p>This is my personal, self-hosted corner of the internet, hardened for security and reliability.</p>
+<Layout title="About | Mastercodeon">
+    <main class="about-page">
+        <h1>About Mastercodeon</h1>
+        
+        <section class="bio-card">
+            <p>
+                Hi, I'm <strong>Mastercodeon</strong>. I am a 26-year-old male, self-taught Software Engineer, Ethical Hacker, and Security Researcher with over 13 years of experience diving deep into the world of code, Windows Internals, and offensive security tooling.
+            </p>
+            <p>
+                My core mission is simple: <strong>to build tools that help people and to improve the security of the digital world we live in.</strong> 
+            </p>
+            <p>
+                Whether I am engineering highly optimized data manipulation algorithms, discovering supply chain vulnerabilities, or developing advanced Red Team payloads to simulate real-world adversaries, I am deeply committed to protecting vulnerable individuals and systems from cyber fraud and malicious actors. I thrive on reverse engineering complex systems, automating intricate tasks, and continuously learning on the bleeding edge of cybersecurity.
+            </p>
+        </section>
+
+        <section class="skills-section">
+            <h2>Technical Expertise</h2>
+            <div class="skills-grid">
+                <div class="skill-card">
+                    <h3>Languages</h3>
+                    <p>C# (Expert), .NET Framework/Core, C, C++, Python, Java, JavaScript, Assembly (x86/x64)</p>
+                </div>
+                <div class="skill-card">
+                    <h3>Offensive Security</h3>
+                    <p>Red Teaming, Payload Development, Evasion (AMSI Patching, API Unhooking), Privilege Escalation (UAC Bypasses), Supply Chain Exploitation</p>
+                </div>
+                <div class="skill-card">
+                    <h3>Windows Internals</h3>
+                    <p>Extensive Win32 API experience, Memory Management, Process Injection, IFEO Hijacking, WMI, Registry Manipulation</p>
+                </div>
+                <div class="skill-card">
+                    <h3>Reverse Engineering</h3>
+                    <p>dnSpy, Ghidra, IDA Pro, Jadx, Deobfuscation techniques, Malware Analysis</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="collaboration-card">
+            <div class="collab-content">
+                <h2>Collaborating with Church of Malware</h2>
+                <p>
+                    I am proud to collaborate with the <strong>Church of Malware</strong>, a nonprofit cybersecurity organization dedicated to advancing security research, education, and threat intelligence. Together, we work to dissect emerging threats, develop defensive tooling, and foster a community committed to securing the digital frontier and protecting users worldwide.
+                </p>
+                <a href="https://churchofmalware.org" target="_blank" rel="noopener noreferrer" class="collab-btn">Visit Church of Malware &rarr;</a>
+            </div>
+        </section>
     </main>
 </Layout>
+
+<style>
+  .about-page h1 {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+  }
+
+  .bio-card {
+    background-color: var(--card-bg);
+    padding: 2rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 3rem;
+    line-height: 1.6;
+    font-size: 1.05rem;
+  }
+
+  .bio-card p {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #D1D5DB;
+  }
+
+  .bio-card p:last-child {
+    margin-bottom: 0;
+  }
+
+  .bio-card strong {
+    color: var(--text-color);
+  }
+
+  .skills-section {
+    margin-bottom: 3rem;
+  }
+
+  .skills-section h2 {
+    color: var(--accent-color);
+    margin-bottom: 1.5rem;
+  }
+
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .skill-card {
+    background-color: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+
+  .skill-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent-color);
+  }
+
+  .skill-card h3 {
+    margin-top: 0;
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .skill-card p {
+    color: #9CA3AF;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .collaboration-card {
+    background: linear-gradient(145deg, var(--card-bg) 0%, #000000 100%);
+    padding: 2.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--accent-color);
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.1);
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .collaboration-card h2 {
+    margin-top: 0;
+    color: var(--text-color);
+    margin-bottom: 1rem;
+  }
+
+  .collaboration-card p {
+    color: #D1D5DB;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .collab-btn {
+    display: inline-block;
+    background-color: var(--accent-color);
+    color: #000000;
+    padding: 0.8rem 1.5rem;
+    border-radius: 6px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .collab-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.6);
+    color: #000000;
+    text-shadow: none;
+  }
+
+  @media (max-width: 768px) {
+    .bio-card, .collaboration-card {
+      padding: 1.5rem;
+    }
+    .skills-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
