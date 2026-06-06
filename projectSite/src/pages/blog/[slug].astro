@@ -37,22 +37,28 @@ const parsedReadme = marked.parse(readmeContent);
     <hr class="divider" />
     
     <section class="comments-section">
-      <h2>Terminal Logs</h2>
-      
-      <form id="comment-form" class="comment-form" data-slug={post.slug}>
-        <div class="input-group">
-          <label for="username">User ID</label>
-          <input type="text" id="username" name="username" placeholder="guest_user" required maxlength="50" />
-        </div>
-        <div class="input-group">
-          <label for="comment-text">Log Entry</label>
-          <textarea id="comment-text" name="text" placeholder="Enter your transmission here..." required maxlength="500" rows="3"></textarea>
-        </div>
-        <button type="submit" class="submit-btn" id="submit-btn">Submit Log</button>
-      </form>
+      <div class="comments-header-row">
+        <h2>Terminal Logs</h2>
+        <span id="comments-count" class="comments-count">0 Transmissions</span>
+      </div>
 
       <div id="comments-container" class="comments-container">
         <div class="loading-text">Fetching logs...</div>
+      </div>
+      
+      <div class="form-wrapper">
+        <h3 class="form-title">Initialize Transmission</h3>
+        <form id="comment-form" class="comment-form" data-slug={post.slug}>
+          <div class="input-group">
+            <label for="username">User ID</label>
+            <input type="text" id="username" name="username" placeholder="guest_user" required maxlength="50" />
+          </div>
+          <div class="input-group">
+            <label for="comment-text">Log Entry</label>
+            <textarea id="comment-text" name="text" placeholder="Enter your transmission here..." required maxlength="500" rows="3"></textarea>
+          </div>
+          <button type="submit" class="submit-btn" id="submit-btn">Submit Log</button>
+        </form>
       </div>
     </section>
   </main>
@@ -120,29 +126,170 @@ const parsedReadme = marked.parse(readmeContent);
     background: var(--border-color);
     margin: 3rem 0;
   }
-  .comments-section h2 {
-    color: var(--accent-color);
+  
+  .comments-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 1.5rem;
-    font-size: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
   }
-  .comment-form {
+
+  .comments-header-row h2 {
+    color: var(--accent-color);
+    margin: 0;
+    font-size: 1.5rem;
+    border: none;
+    padding: 0;
+  }
+
+  .comments-count {
+    font-family: monospace;
+    color: #9CA3AF;
     background-color: var(--card-bg);
-    padding: 1.5rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    font-size: 0.9rem;
+  }
+
+  .comments-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+  }
+
+  .comment-card {
+    display: flex;
+    gap: 1.2rem;
+    background-color: transparent;
+    padding: 0;
+  }
+
+  .comment-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+    color: #000000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.4rem;
+    font-family: monospace;
+    flex-shrink: 0;
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+  }
+
+  .comment-content {
+    flex-grow: 1;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.2rem;
+    position: relative;
+  }
+
+  /* Little triangle pointing to the avatar */
+  .comment-content::before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: -6px;
+    width: 10px;
+    height: 10px;
+    background-color: var(--card-bg);
+    border-left: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    transform: rotate(45deg);
+  }
+
+  .comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.8rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 0.5rem;
+  }
+
+  .comment-author {
+    color: var(--accent-color);
+    font-weight: bold;
+    font-family: monospace;
+    font-size: 1.05rem;
+  }
+
+  .comment-date {
+    color: #6B7280;
+    font-size: 0.85rem;
+  }
+
+  .comment-body {
+    color: #D1D5DB;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .empty-comments, .loading-text {
+    color: #9CA3AF;
+    font-style: italic;
+    font-family: monospace;
+    text-align: center;
+    padding: 2rem 0;
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    border: 1px dashed var(--border-color);
+  }
+
+  .error-text {
+    color: #FF5F56;
+    font-family: monospace;
+    text-align: center;
+    padding: 2rem 0;
+  }
+
+  /* --- Form Styles --- */
+  .form-wrapper {
+    background-color: var(--card-bg);
+    padding: 2rem;
     border-radius: 8px;
     border: 1px solid var(--border-color);
-    margin-bottom: 2rem;
+    border-top: 3px solid var(--accent-color);
   }
+
+  .form-title {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: var(--text-color);
+    font-family: monospace;
+    font-size: 1.2rem;
+  }
+
+  .comment-form {
+    display: flex;
+    flex-direction: column;
+  }
+
   .input-group {
-    margin-bottom: 1rem;
+    margin-bottom: 1.2rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
   }
+
   .input-group label {
     color: #9CA3AF;
     font-size: 0.9rem;
     font-family: monospace;
   }
+
   .input-group input, .input-group textarea {
     background-color: #000000;
     border: 1px solid var(--border-color);
@@ -150,12 +297,15 @@ const parsedReadme = marked.parse(readmeContent);
     padding: 0.8rem;
     border-radius: 4px;
     font-family: inherit;
-    transition: border-color 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
+
   .input-group input:focus, .input-group textarea:focus {
     outline: none;
     border-color: var(--accent-color);
+    box-shadow: 0 0 5px rgba(0, 229, 255, 0.2);
   }
+
   .submit-btn {
     background-color: var(--accent-color);
     color: #000000;
@@ -167,59 +317,31 @@ const parsedReadme = marked.parse(readmeContent);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     font-family: monospace;
     text-transform: uppercase;
+    align-self: flex-start;
+    margin-top: 0.5rem;
   }
+
   .submit-btn:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
   }
+
   .submit-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
-  .comments-container {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  .comment-card {
-    background-color: #050505;
-    border-left: 3px solid var(--accent-color);
-    padding: 1rem;
-    border-radius: 0 4px 4px 0;
-  }
-  .comment-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-    font-size: 0.85rem;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-  .comment-author {
-    color: var(--accent-color);
-    font-weight: bold;
-    font-family: monospace;
-  }
-  .comment-author::before {
-    content: "> ";
-  }
-  .comment-date {
-    color: #6B7280;
-  }
-  .comment-body {
-    color: #D1D5DB;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-  .empty-comments, .loading-text {
-    color: #9CA3AF;
-    font-style: italic;
-    font-family: monospace;
-  }
-  .error-text {
-    color: #FF5F56;
-    font-family: monospace;
+
+  @media (max-width: 600px) {
+    .comment-card {
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+    .comment-content::before {
+      display: none; /* Hide the triangle on mobile when stacked */
+    }
+    .submit-btn {
+      align-self: stretch;
+    }
   }
 </style>
 
@@ -227,7 +349,8 @@ const parsedReadme = marked.parse(readmeContent);
   function setupComments() {
     const form = document.getElementById('comment-form');
     const container = document.getElementById('comments-container');
-    if (!form || !container) return;
+    const countDisplay = document.getElementById('comments-count');
+    if (!form || !container || !countDisplay) return;
 
     // Clone and replace to prevent duplicate event listeners from ViewTransitions
     const newForm = form.cloneNode(true);
@@ -243,26 +366,39 @@ const parsedReadme = marked.parse(readmeContent);
         const comments = await res.json();
         
         container.innerHTML = '';
+        
+        // Update the counter
+        countDisplay.textContent = `${comments.length} Transmission${comments.length === 1 ? '' : 's'}`;
+
         if (comments.length === 0) {
-          container.innerHTML = '<p class="empty-comments">No logs found. Be the first to transmit.</p>';
+          container.innerHTML = '<div class="empty-comments">No logs found. Be the first to transmit.</div>';
           return;
         }
 
         comments.forEach(c => {
           const div = document.createElement('div');
           div.className = 'comment-card';
-          const date = new Date(c.date).toLocaleString();
+          
+          const dateOptions = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+          const date = new Date(c.date).toLocaleDateString(undefined, dateOptions);
+          
+          // Extract first letter for avatar
+          const initial = c.username ? c.username.charAt(0).toUpperCase() : '?';
+
           div.innerHTML = `
-            <div class="comment-header">
-              <span class="comment-author">${c.username}</span>
-              <span class="comment-date">${date}</span>
+            <div class="comment-avatar">${initial}</div>
+            <div class="comment-content">
+              <div class="comment-header">
+                <span class="comment-author">${c.username}</span>
+                <span class="comment-date">${date}</span>
+              </div>
+              <div class="comment-body">${c.text}</div>
             </div>
-            <div class="comment-body">${c.text}</div>
           `;
           container.appendChild(div);
         });
       } catch (err) {
-        container.innerHTML = '<p class="error-text">Error establishing connection to log server.</p>';
+        container.innerHTML = '<div class="error-text">Error establishing connection to log server.</div>';
       }
     }
 
