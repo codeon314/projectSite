@@ -13,38 +13,31 @@ const posts = await Promise.all(
       const filePath = path.join(blogDir, file);
       const fileContent = await fs.readFile(filePath, 'utf-8');
       const post = JSON.parse(fileContent);
-      // Ensure the date is parsed correctly for sorting
+      // Ensure the date is parsed correctly
       post.date = new Date(post.date);
       return post;
     })
 );
 
-// Get the sort order from the URL query parameters, default to 'newest'
-const urlParams = new URLSearchParams(Astro.url.search);
-const sortBy = urlParams.get('sort') || 'newest';
-
-// Sort the posts based on the selected order
-posts.sort((a, b) => {
-  if (sortBy === 'newest') {
-    return b.date - a.date;
-  } else {
-    return a.date - b.date;
-  }
-});
+// Default build-time sort (Newest first)
+// The client-side script will handle dynamic sorting later
+posts.sort((a, b) => b.date.getTime() - a.date.getTime());
 ---
-<Layout title="Blog">
+<Layout title="Blog | Mastercodeon">
   <main>
     <div class="header-container">
       <h1>Blog</h1>
       <div class="sort-options">
         <span>Sort by:</span>
-        <a href="?sort=newest" class={sortBy === 'newest' ? 'active' : ''}>Newest</a>
-        <a href="?sort=oldest" class={sortBy === 'oldest' ? 'active' : ''}>Oldest</a>
+        <button class="sort-btn active" data-sort="newest">Newest</button>
+        <button class="sort-btn" data-sort="oldest">Oldest</button>
       </div>
     </div>
+    
     <div class="post-grid">
       {posts.map(post => (
-        <a href={`/blog/${post.slug}`} class="post-card">
+        <!-- We embed the timestamp in data-date so JS can sort it easily -->
+        <a href={`/blog/${post.slug}`} class="post-card" data-date={post.date.getTime()}>
           <h3>{post.title}</h3>
           <p>{post.description}</p>
           <span>{post.date.toDateString()}</span>
@@ -60,23 +53,50 @@ posts.sort((a, b) => {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
     flex-wrap: wrap;
     gap: 1rem;
   }
-  .sort-options a {
+  
+  .header-container h1 {
+    margin: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .sort-options {
+    display: flex;
+    align-items: center;
+  }
+
+  .sort-btn {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    font-family: inherit;
+    cursor: pointer;
     margin-left: 1rem;
     color: #9CA3AF;
-    text-decoration: none;
+    padding: 0;
+    transition: color 0.2s ease;
   }
-  .sort-options a.active {
+
+  .sort-btn:hover {
+    color: var(--text-color);
+  }
+
+  .sort-btn.active {
     color: var(--accent-color);
     font-weight: bold;
   }
+
   .post-grid {
     display: grid;
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
+
   .post-card {
     background-color: var(--card-bg);
     padding: 1.5rem;
@@ -85,20 +105,84 @@ posts.sort((a, b) => {
     transition: transform 0.2s ease, border-color 0.2s ease;
     display: block;
   }
+
   .post-card:hover {
     transform: translateY(-5px);
     border-color: var(--accent-color);
-    color: var(--text-color);
   }
+
   .post-card h3 {
     margin-top: 0;
     color: var(--accent-color);
+    margin-bottom: 0.5rem;
   }
+
   .post-card p {
     color: #D1D5DB;
+    margin-bottom: 1rem;
   }
+
   .post-card span {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #9CA3AF;
   }
 </style>
+
+<script>
+  function setupSorting() {
+    const grid = document.querySelector('.post-grid');
+    const buttons = document.querySelectorAll('.sort-btn');
+    if (!grid || buttons.length === 0) return;
+
+    // Check URL for initial sort state (if someone shares a link with ?sort=oldest)
+    const params = new URLSearchParams(window.location.search);
+    const initialSort = params.get('sort') || 'newest';
+
+    function sortPosts(order) {
+      const cards = Array.from(grid.querySelectorAll('.post-card'));
+      
+      // Sort the DOM elements based on the data-date attribute
+      cards.sort((a, b) => {
+        const dateA = parseInt(a.dataset.date);
+        const dateB = parseInt(b.dataset.date);
+        return order === 'newest' ? dateB - dateA : dateA - dateB;
+      });
+      
+      // Re-append elements to the grid in the new order
+      cards.forEach(card => grid.appendChild(card));
+
+      // Update active button styling
+      buttons.forEach(btn => {
+        if (btn.dataset.sort === order) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      // Update URL silently without reloading the page
+      const newUrl = new URL(window.location);
+      newUrl.searchParams.set('sort', order);
+      window.history.replaceState({}, '', newUrl);
+    }
+
+    // Apply initial sort if needed
+    if (initialSort === 'oldest') {
+      sortPosts('oldest');
+    }
+
+    // Add click listeners to the buttons
+    buttons.forEach(btn => {
+      // Clone and replace to prevent duplicate event listeners from ViewTransitions
+      const newBtn = btn.cloneNode(true);
+      btn.replaceWith(newBtn);
+      
+      newBtn.addEventListener('click', () => {
+        sortPosts(newBtn.dataset.sort);
+      });
+    });
+  }
+
+  // Run on initial load and after Astro ViewTransitions
+  document.addEventListener('astro:page-load', setupSorting);
+</script>
