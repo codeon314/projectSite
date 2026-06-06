@@ -322,6 +322,12 @@ const parsedReadme = marked.parse(readmeContent);
     box-shadow: 0 0 5px rgba(0, 229, 255, 0.2);
   }
 
+  /* Validation Highlight Styles */
+  .input-group input.invalid, .input-group textarea.invalid {
+    border-color: #FF5F56 !important;
+    box-shadow: 0 0 5px rgba(255, 95, 86, 0.4) !important;
+  }
+
   /* Override Chrome/Webkit Autofill styling to maintain dark theme */
   .input-group input:-webkit-autofill,
   .input-group input:-webkit-autofill:hover, 
@@ -467,6 +473,17 @@ const parsedReadme = marked.parse(readmeContent);
       clearInterval(window.commentPollInterval);
     }
 
+    // Attach input listeners to clear validation highlights in real-time
+    const usernameInput = document.getElementById('username') as HTMLInputElement;
+    const textInput = document.getElementById('comment-text') as HTMLTextAreaElement;
+    
+    if (usernameInput) {
+      usernameInput.addEventListener('input', () => usernameInput.classList.remove('invalid'));
+    }
+    if (textInput) {
+      textInput.addEventListener('input', () => textInput.classList.remove('invalid'));
+    }
+
     async function loadComments(isBackgroundPoll = false) {
       try {
         // Force the browser to bypass all caches (disk, memory, and network)
@@ -534,21 +551,36 @@ const parsedReadme = marked.parse(readmeContent);
 
     activeForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const btn = document.getElementById('submit-btn');
-      const usernameInput = document.getElementById('username') as HTMLInputElement;
-      const textInput = document.getElementById('comment-text') as HTMLTextAreaElement;
+      const btn = document.getElementById('submit-btn') as HTMLButtonElement;
       
-      // Client-Side Sanitization
-      // Username: Only Alphanumeric and spaces
-      let rawUsername = usernameInput.value;
-      let cleanUsername = rawUsername.replace(/[^a-zA-Z0-9\s]/g, '').trim();
-      
-      // Text: Only Alphanumeric, spaces, and basic punctuation (.,!?'-)
-      let rawText = textInput.value;
-      let cleanText = rawText.replace(/[^a-zA-Z0-9\s.,!?'-]/g, '').trim();
+      let rawUsername = usernameInput.value.trim();
+      let rawText = textInput.value.trim();
 
-      if (!cleanUsername || !cleanText) {
-        showToast("Invalid input. Only basic text and numbers are allowed.");
+      // Strict Regex Patterns
+      const usernameRegex = /^[a-zA-Z0-9\s]+$/;
+      const textRegex = /^[a-zA-Z0-9\s.,!?'-]+$/;
+
+      let isValid = true;
+
+      // Validate Username
+      if (!rawUsername || !usernameRegex.test(rawUsername)) {
+        usernameInput.classList.add('invalid');
+        isValid = false;
+      } else {
+        usernameInput.classList.remove('invalid');
+      }
+
+      // Validate Text
+      if (!rawText || !textRegex.test(rawText)) {
+        textInput.classList.add('invalid');
+        isValid = false;
+      } else {
+        textInput.classList.remove('invalid');
+      }
+
+      // Block submission and alert user if illegal characters are found
+      if (!isValid) {
+        showToast("Illegal characters detected. Please remove them to transmit.");
         return;
       }
 
@@ -564,7 +596,7 @@ const parsedReadme = marked.parse(readmeContent);
             'Content-Type': 'application/json',
             'X-Client-Fingerprint': fingerprint
           },
-          body: JSON.stringify({ username: cleanUsername, text: cleanText })
+          body: JSON.stringify({ username: rawUsername, text: rawText })
         });
 
         if (!res.ok) {

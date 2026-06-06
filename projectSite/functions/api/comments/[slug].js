@@ -91,21 +91,26 @@ export async function onRequestPost({ request, params, env }) {
         return new Response(JSON.stringify({ error: "Missing fields" }), { status: 400 });
     }
 
-    // Server-Side Sanitization
-    // Username: Only Alphanumeric and spaces
-    const cleanUsername = data.username.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 50).trim();
-    
-    // Text: Only Alphanumeric, spaces, and basic punctuation (.,!?'-)
-    const cleanText = data.text.replace(/[^a-zA-Z0-9\s.,!?'-]/g, '').substring(0, 500).trim();
+    const rawUsername = data.username.trim();
+    const rawText = data.text.trim();
 
-    if (!cleanUsername || !cleanText) {
-        return new Response(JSON.stringify({ error: "Invalid input. Only basic text and numbers are allowed." }), { status: 400 });
+    // Strict Regex Patterns (Must match client-side exactly)
+    const usernameRegex = /^[a-zA-Z0-9\s]+$/;
+    const textRegex = /^[a-zA-Z0-9\s.,!?'-]+$/;
+
+    // Server-Side Enforcement: Reject instead of silently stripping
+    if (!rawUsername || !usernameRegex.test(rawUsername) || rawUsername.length > 50) {
+        return new Response(JSON.stringify({ error: "Illegal characters detected in User ID or length exceeded. Transmission rejected." }), { status: 400 });
+    }
+
+    if (!rawText || !textRegex.test(rawText) || rawText.length > 500) {
+        return new Response(JSON.stringify({ error: "Illegal characters detected in Log Entry or length exceeded. Transmission rejected." }), { status: 400 });
     }
 
     const newComment = {
         id: Date.now().toString(),
-        username: cleanUsername,
-        text: cleanText,
+        username: rawUsername,
+        text: rawText,
         date: new Date().toISOString()
     };
 
