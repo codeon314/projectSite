@@ -1,7 +1,3 @@
-// Node.js built-in modules for file system and path operations
-import { promises as fs } from 'fs';
-import path from 'path';
-
 // Using a Map to store our cached data
 const cache = new Map();
 
@@ -53,21 +49,16 @@ export async function fetchAndCache(url) {
 async function preCacheAllProjects() {
   console.log('[CACHE] Starting non-blocking pre-cache of all project READMEs...');
   try {
-    const projectsDir = path.join(process.cwd(), 'src/content/projects');
-    const projectFilenames = await fs.readdir(projectsDir);
-    const jsonFiles = projectFilenames.filter(file => file.endsWith('.json'));
+    // Use Vite's import.meta.glob to load all JSON files at build time
+    // This completely removes the need for the Node.js 'fs' module
+    const projectModules = import.meta.glob('/src/content/projects/*.json', { eager: true });
+    const projects = Object.values(projectModules).map(m => m.default || m);
 
     // We use Promise.all to run fetches in parallel for efficiency
     await Promise.all(
-      jsonFiles.map(async (file) => {
-        const filePath = path.join(projectsDir, file);
-        const fileContent = await fs.readFile(filePath, 'utf-8');
-        const project = JSON.parse(fileContent);
-
+      projects.map(async (project) => {
         if (project.repoLink) {
           const readmeUrl = `${project.repoLink}/raw/branch/main/README.md`;
-          // No need to log every pre-warm fetch unless debugging
-          // console.log(`[CACHE PRE-WARM] Fetching: ${project.projectName}`);
           await fetchAndCache(readmeUrl); // Fetch and populate the cache
         }
       })

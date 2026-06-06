@@ -1,23 +1,11 @@
 ---
-import { promises as fs } from 'fs';
-import path from 'path';
 import { marked } from 'marked';
 import Layout from '../../layouts/Layout.astro';
 import { fetchAndCache } from '../../lib/cache.js';
 
 export async function getStaticPaths() {
-  const projectsDir = path.join(process.cwd(), 'src/content/projects');
-  const projectFilenames = await fs.readdir(projectsDir);
-  
-  const projects = await Promise.all(
-    projectFilenames
-      .filter(file => file.endsWith('.json'))
-      .map(async (file) => {
-        const filePath = path.join(projectsDir, file);
-        const fileContent = await fs.readFile(filePath, 'utf-8');
-        return JSON.parse(fileContent);
-      })
-  );
+  const projectModules = import.meta.glob('/src/content/projects/*.json', { eager: true });
+  const projects = Object.values(projectModules).map((m: any) => m.default || m);
 
   return projects.map(project => ({
     params: { slug: project.slug },

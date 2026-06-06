@@ -1,5 +1,5 @@
 ---
-import { ViewTransitions } from 'astro:transitions';
+import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 import '../lib/cache.js'; // <-- ADD THIS LINE to trigger the pre-caching on startup
 const { title } = Astro.props;
@@ -11,7 +11,7 @@ const { title } = Astro.props;
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{title}</title>
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        <ViewTransitions />
+        <ClientRouter />
         
         <!-- Highlight.js for Syntax Highlighting -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">

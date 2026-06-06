@@ -1,23 +1,11 @@
 ---
-import { promises as fs } from 'fs';
-import path from 'path';
 import Layout from '../../layouts/Layout.astro';
 
-const blogDir = path.join(process.cwd(), 'src/content/blog');
-const blogFilenames = await fs.readdir(blogDir);
-
-const posts = await Promise.all(
-  blogFilenames
-    .filter(file => file.endsWith('.json'))
-    .map(async (file) => {
-      const filePath = path.join(blogDir, file);
-      const fileContent = await fs.readFile(filePath, 'utf-8');
-      const post = JSON.parse(fileContent);
-      // Ensure the date is parsed correctly
-      post.date = new Date(post.date);
-      return post;
-    })
-);
+const postModules = import.meta.glob('/src/content/blog/*.json', { eager: true });
+const posts = Object.values(postModules).map((m: any) => {
+  const post = m.default || m;
+  return { ...post, date: new Date(post.date) };
+});
 
 // Default build-time sort (Newest first)
 // The client-side script will handle dynamic sorting later
