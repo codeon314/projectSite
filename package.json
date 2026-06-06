@@ -1,19 +1,16 @@
 {
+  "name": "projectsite",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev --host",
+    "build": "astro build",
+    "preview": "astro preview --port 4321 --host --allowed-hosts=projhosting.playit.plus",
+    "astro": "astro"
+  },
   "dependencies": {
     "@astrojs/cloudflare": "^13.6.1",
-    "create-astro": "^4.13.1",
-    "marked": "^16.1.2",
-    "wrangler": "^4.98.0"
-  },
-  "scripts": {
-    "dev": "astro dev",
-    "start": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "astro": "astro",
-    "generate-types": "wrangler types"
-  },
-  "overrides": {
-    "vite": "^7"
+    "astro": "^5.14.1",
+    "marked": "^18.0.5"
   }
 }

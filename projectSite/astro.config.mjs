@@ -1,7 +1,13 @@
 import { defineConfig } from 'astro/config';
+import cloudflare from '@astrojs/cloudflare';
 
-// Force clean static build configuration
+// Switched to hybrid mode to allow static generation for pages, 
+// but serverless execution for our new API endpoint.
 export default defineConfig({
-  output: 'static',
-  adapter: undefined
+  output: 'hybrid',
+  adapter: cloudflare({
+    platformProxy: {
+      enabled: true
+    }
+  })
 });
