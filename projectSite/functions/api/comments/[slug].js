@@ -2,8 +2,8 @@
 const localDevCache = new Map();
 
 // Rate Limiting Configuration
-const RATE_LIMIT_WINDOW_MS = 30000; // 30 seconds
-const MAX_COMMENTS_PER_WINDOW = 2;
+const RATE_LIMIT_WINDOW_MS = 60000; // 60 seconds
+const MAX_COMMENTS_PER_WINDOW = 1;
 
 export async function onRequestGet({ params, env }) {
     const { slug } = params;
@@ -58,7 +58,7 @@ export async function onRequestPost({ request, params, env }) {
             if (rlStr) timestamps = JSON.parse(rlStr);
         }
 
-        // Filter out timestamps older than the 30-second window
+        // Filter out timestamps older than the 60-second window
         timestamps = timestamps.filter(ts => now - ts < RATE_LIMIT_WINDOW_MS);
 
         if (timestamps.length >= MAX_COMMENTS_PER_WINDOW) {
@@ -67,9 +67,9 @@ export async function onRequestPost({ request, params, env }) {
 
         timestamps.push(now);
 
-        // Save back to KV with a 60-second expiration to auto-cleanup
+        // Save back to KV with a 120-second expiration to auto-cleanup
         if (env && env.COMMENTS_KV) {
-            await env.COMMENTS_KV.put(key, JSON.stringify(timestamps), { expirationTtl: 60 });
+            await env.COMMENTS_KV.put(key, JSON.stringify(timestamps), { expirationTtl: 120 });
         } else {
             localDevCache.set(key, JSON.stringify(timestamps));
         }
@@ -81,7 +81,7 @@ export async function onRequestPost({ request, params, env }) {
     const fpAllowed = await checkAndEnforceLimit(fpKey);
 
     if (!ipAllowed || !fpAllowed) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please wait 30 seconds before transmitting again." }), { status: 429 });
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please wait 60 seconds before transmitting again." }), { status: 429 });
     }
 
     // 3. Process and Sanitize the Comment
