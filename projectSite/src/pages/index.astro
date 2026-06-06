@@ -1,24 +1,375 @@
 <!-- Directory Structure: .\src\pages\index.astro -->
 ---
+import { promises as fs } from 'fs';
+import path from 'path';
 import Layout from '../layouts/Layout.astro';
+
+// Fetch the latest blog post dynamically
+const blogDir = path.join(process.cwd(), 'src/content/blog');
+let latestPost = null;
+
+try {
+  const blogFilenames = await fs.readdir(blogDir);
+  const posts = await Promise.all(
+    blogFilenames
+      .filter(file => file.endsWith('.json'))
+      .map(async (file) => {
+        const filePath = path.join(blogDir, file);
+        const fileContent = await fs.readFile(filePath, 'utf-8');
+        const post = JSON.parse(fileContent);
+        post.date = new Date(post.date);
+        return post;
+      })
+  );
+  
+  // Sort newest first
+  posts.sort((a, b) => b.date - a.date);
+  
+  if (posts.length > 0) {
+    latestPost = posts[0];
+  }
+} catch (error) {
+  console.error("Error fetching latest blog post:", error);
+}
 ---
-<Layout title="Home | My Portfolio">
+<Layout title="Mastercodeon | DevSpace">
     <main>
-        <div class="hero">
-            <h1>Welcome to the DevSpace</h1>
-            <p>Mastercodeon314's personal space where all source code, projects, and data is hosted.</p>
-            <a href="/projects" class="cta-button">View My Projects</a>
+        <section class="hero">
+            <div class="hero-badge">
+                <span class="pulse-dot"></span> System Online
+            </div>
+            <h1 class="glow-text">Mastercodeon</h1>
+            <h2 class="subtitle">Software Engineer &middot; Ethical Hacker &middot; Security Researcher</h2>
+            <p class="hero-desc">
+                Welcome to my personal DevSpace. This is where I host my source code, document my security research, and build tools to protect the digital frontier.
+            </p>
+            <div class="hero-actions">
+                <a href="/projects" class="cta-button primary">View Projects</a>
+                <a href="/about" class="cta-button secondary">About Me</a>
+            </div>
+        </section>
+
+        <div class="dashboard-grid">
+            <!-- Latest Blog Post Card -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    <h3>Latest Transmission</h3>
+                </div>
+                {latestPost ? (
+                    <a href={`/blog/${latestPost.slug}`} class="latest-post-link">
+                        <h4>{latestPost.title}</h4>
+                        <span class="post-date">{latestPost.date.toDateString()}</span>
+                        <p>{latestPost.description}</p>
+                        <span class="read-more">Read Post &rarr;</span>
+                    </a>
+                ) : (
+                    <p class="empty-state">No transmissions found in the database.</p>
+                )}
+            </div>
+
+            <!-- Terminal Quick Info Card -->
+            <div class="dashboard-card terminal-card">
+                <div class="terminal-header">
+                    <div class="terminal-dots">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                    </div>
+                    <span class="terminal-title">guest@mastercodeon:~</span>
+                </div>
+                <div class="terminal-body">
+                    <p><span class="prompt">&gt;</span> whoami</p>
+                    <p class="output">mastercodeon</p>
+                    <p><span class="prompt">&gt;</span> cat mission.txt</p>
+                    <p class="output">Building tools to help people and secure the digital world.</p>
+                    <p><span class="prompt">&gt;</span> ./get_status.sh</p>
+                    <p class="output success">All systems operational. Ready for deployment.</p>
+                    <p><span class="prompt blink">_</span></p>
+                </div>
+            </div>
         </div>
     </main>
 </Layout>
+
 <style>
-  .hero { text-align: center; padding: 4rem 0; animation: fadeIn 1s ease-in-out; }
-  .hero h1 { font-size: 3rem; margin-bottom: 1rem; }
-  .hero p { font-size: 1.2rem; color: #9CA3AF; margin-bottom: 2rem; }
-  .cta-button { background-color: var(--accent-color); color: var(--bg-color); padding: 0.8rem 1.5rem; border-radius: 8px; font-weight: bold; transition: transform 0.2s ease, box-shadow 0.2s ease; }
-  .cta-button:hover { transform: scale(1.05); box-shadow: 0 0 15px var(--accent-color); color: var(--bg-color); }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  /* --- Hero Section --- */
+  .hero { 
+    text-align: center; 
+    padding: 3rem 0 4rem 0; 
+    animation: fadeIn 1s ease-in-out; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    padding: 0.4rem 1rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    color: #9CA3AF;
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-color);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent-color);
+    animation: pulse 2s infinite;
+  }
+
+  .hero h1 { 
+    font-size: 3.5rem; 
+    margin: 0 0 0.5rem 0; 
+    color: var(--text-color);
+  }
+
+  .glow-text {
+    text-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+  }
+
+  .subtitle {
+    font-size: 1.2rem;
+    color: var(--accent-color);
+    font-weight: normal;
+    margin: 0 0 1.5rem 0;
+  }
+
+  .hero-desc { 
+    font-size: 1.1rem; 
+    color: #9CA3AF; 
+    margin-bottom: 2.5rem; 
+    max-width: 600px;
+    line-height: 1.6;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .cta-button { 
+    padding: 0.8rem 1.8rem; 
+    border-radius: 8px; 
+    font-weight: bold; 
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease; 
+  }
+
+  .cta-button.primary {
+    background-color: var(--accent-color); 
+    color: #000000; 
+  }
+
+  .cta-button.primary:hover { 
+    transform: translateY(-3px); 
+    box-shadow: 0 5px 15px rgba(0, 229, 255, 0.4); 
+    color: #000000; 
+  }
+
+  .cta-button.secondary {
+    background-color: transparent;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+  }
+
+  .cta-button.secondary:hover {
+    background-color: var(--card-bg);
+    border-color: var(--accent-color);
+    transform: translateY(-3px);
+  }
+
+  /* --- Dashboard Grid --- */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    animation: slideUp 0.8s ease-out forwards;
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .dashboard-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.8rem;
+  }
+
+  .card-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--text-color);
+  }
+
+  /* --- Latest Post Link Styling --- */
+  .latest-post-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    padding: 1rem;
+    border-radius: 6px;
+    background-color: #050505;
+    border: 1px solid transparent;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+    flex-grow: 1;
+  }
+
+  .latest-post-link:hover {
+    border-color: var(--accent-color);
+    transform: translateY(-3px);
+  }
+
+  .latest-post-link h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--accent-color);
+    font-size: 1.3rem;
+  }
+
+  .post-date {
+    display: block;
+    font-size: 0.85rem;
+    color: #9CA3AF;
+    margin-bottom: 1rem;
+  }
+
+  .latest-post-link p {
+    color: #D1D5DB;
+    margin: 0 0 1.5rem 0;
+    line-height: 1.5;
+  }
+
+  .read-more {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--accent-color);
+  }
+
+  .empty-state {
+    color: #9CA3AF;
+    font-style: italic;
+  }
+
+  /* --- Terminal Card Styling --- */
+  .terminal-card {
+    padding: 0;
+    overflow: hidden;
+    background-color: #050505;
+  }
+
+  .terminal-header {
+    background-color: #111111;
+    padding: 0.8rem 1rem;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    position: relative;
+  }
+
+  .terminal-dots {
+    display: flex;
+    gap: 6px;
+    position: absolute;
+    left: 1rem;
+  }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  .dot.red { background-color: #FF5F56; }
+  .dot.yellow { background-color: #FFBD2E; }
+  .dot.green { background-color: #27C93F; }
+
+  .terminal-title {
+    width: 100%;
+    text-align: center;
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #9CA3AF;
+  }
+
+  .terminal-body {
+    padding: 1.5rem;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.95rem;
+    color: #D1D5DB;
+    line-height: 1.6;
+  }
+
+  .terminal-body p {
+    margin: 0 0 0.5rem 0;
+  }
+
+  .prompt {
+    color: var(--accent-color);
+    font-weight: bold;
+    margin-right: 0.5rem;
+  }
+
+  .output {
+    color: #9CA3AF;
+    margin-bottom: 1rem !important;
+    padding-left: 1rem;
+  }
+
+  .output.success {
+    color: #27C93F;
+  }
+
+  .blink {
+    animation: blinker 1s linear infinite;
+  }
+
+  /* --- Animations --- */
+  @keyframes fadeIn { 
+    from { opacity: 0; } 
+    to { opacity: 1; } 
+  }
+  
+  @keyframes slideUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.7); }
+    70% { box-shadow: 0 0 0 6px rgba(0, 229, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0); }
+  }
+
+  @keyframes blinker {
+    50% { opacity: 0; }
+  }
+
+  /* --- Mobile Adjustments --- */
   @media (max-width: 768px) {
-    .hero { padding: 2rem 0; } .hero h1 { font-size: 2.2rem; } .hero p { font-size: 1rem; }
+    .hero { padding: 2rem 0; } 
+    .hero h1 { font-size: 2.5rem; } 
+    .subtitle { font-size: 1rem; }
+    .hero-desc { font-size: 1rem; }
+    .dashboard-grid { grid-template-columns: 1fr; }
   }
 </style>
