@@ -1,21 +1,16 @@
-// CRITICAL: This tells Astro to compile this specific file into the Cloudflare Worker
-export const prerender = false;
-
 // In-memory fallback for local development if Cloudflare KV is not yet bound
 const localDevCache = new Map();
 
-export async function GET({ params, locals }) {
+export async function onRequestGet({ params, env }) {
     const { slug } = params;
-    const env = locals?.runtime?.env;
-    
     let comments = [];
-    
+
     // Check if Cloudflare KV is bound (Production)
     if (env && env.COMMENTS_KV) {
         const commentsStr = await env.COMMENTS_KV.get(`comments_${slug}`);
         if (commentsStr) comments = JSON.parse(commentsStr);
     } else {
-        // Fallback for local testing (Development)
+        // Fallback for local testing
         const commentsStr = localDevCache.get(`comments_${slug}`);
         if (commentsStr) comments = JSON.parse(commentsStr);
     }
@@ -26,11 +21,10 @@ export async function GET({ params, locals }) {
     });
 }
 
-export async function POST({ params, request, locals }) {
+export async function onRequestPost({ request, params, env }) {
     const { slug } = params;
-    const env = locals?.runtime?.env;
-    
     const data = await request.json();
+
     if (!data.username || !data.text) {
         return new Response(JSON.stringify({ error: "Missing fields" }), { status: 400 });
     }
@@ -44,19 +38,19 @@ export async function POST({ params, request, locals }) {
     };
 
     let comments = [];
-    
+
     // Check if Cloudflare KV is bound (Production)
     if (env && env.COMMENTS_KV) {
         const commentsStr = await env.COMMENTS_KV.get(`comments_${slug}`);
         if (commentsStr) comments = JSON.parse(commentsStr);
-        
+
         comments.push(newComment);
         await env.COMMENTS_KV.put(`comments_${slug}`, JSON.stringify(comments));
     } else {
-        // Fallback for local testing (Development)
+        // Fallback for local testing
         const commentsStr = localDevCache.get(`comments_${slug}`);
         if (commentsStr) comments = JSON.parse(commentsStr);
-        
+
         comments.push(newComment);
         localDevCache.set(`comments_${slug}`, JSON.stringify(comments));
     }
