@@ -293,6 +293,11 @@ const parsedReadme = marked.parse(readmeContent);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
+  /* Disable resizing on the textarea */
+  .input-group textarea {
+    resize: none;
+  }
+
   .input-group input:focus, .input-group textarea:focus {
     outline: none;
     border-color: var(--accent-color);
@@ -341,6 +346,24 @@ const parsedReadme = marked.parse(readmeContent);
 </style>
 
 <script>
+  // Generates a robust SHA-256 hardware/browser fingerprint
+  async function generateFingerprint() {
+    const components = [
+      navigator.userAgent,
+      navigator.language,
+      screen.colorDepth,
+      screen.width + 'x' + screen.height,
+      Intl.DateTimeFormat().resolvedOptions().timeZone,
+      navigator.hardwareConcurrency || 'unknown',
+      navigator.deviceMemory || 'unknown'
+    ].join('|');
+
+    const msgBuffer = new TextEncoder().encode(components);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
   function setupComments() {
     const form = document.getElementById('comment-form');
     const container = document.getElementById('comments-container');
@@ -411,18 +434,29 @@ const parsedReadme = marked.parse(readmeContent);
       btn.textContent = 'Transmitting...';
 
       try {
+        const fingerprint = await generateFingerprint();
+
         const res = await fetch(`/api/comments/${slug}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-Client-Fingerprint': fingerprint
+          },
           body: JSON.stringify({ username, text })
         });
 
-        if (!res.ok) throw new Error('Failed to post');
+        if (!res.ok) {
+          if (res.status === 429) {
+            const errData = await res.json();
+            throw new Error(errData.error);
+          }
+          throw new Error('Failed to post');
+        }
         
         textInput.value = '';
         await loadComments();
       } catch (err) {
-        alert('Transmission failed. Please try again.');
+        alert(err.message || 'Transmission failed. Please try again.');
       } finally {
         btn.disabled = false;
         btn.textContent = 'Submit Log';
