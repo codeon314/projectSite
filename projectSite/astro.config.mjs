@@ -1,10 +1,13 @@
 import { defineConfig } from 'astro/config';
 import cloudflare from '@astrojs/cloudflare';
 
-// Switch to 'server' output. This ensures the Cloudflare adapter 
-// correctly bundles the API endpoint into a _worker.js file.
 export default defineConfig({
-  output: 'server',
+  output: 'static',
+  build: {
+    // Forces Astro to generate about.html instead of about/index.html.
+    // This completely fixes the Cloudflare Worker 404 routing bug!
+    format: 'file'
+  },
   adapter: cloudflare({
     platformProxy: {
       enabled: true
