@@ -1,6 +1,6 @@
 export async function onRequestGet(context) {
     // Set this to "1" or "0" depending on the desired output
-    const status = "0";
+    const status = "1";
 
     return new Response(status, {
         status: 200,
