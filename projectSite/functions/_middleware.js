@@ -19,7 +19,7 @@ export async function onRequest(context) {
 
   // 2. If the request is hitting the main domain (or the default .pages.dev domain)
   // Block access to the secure APIs so they can ONLY be accessed via the API subdomain
-  if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/hidden-status')) {
+  if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/verify')) {
     return new Response(JSON.stringify({ error: "Forbidden: Access restricted to API gateway." }), { 
         status: 403, 
         headers: { "Content-Type": "application/json" } 

@@ -1,4 +1,3 @@
-/* Directory Structure: .\functions\api\hidden-status\index.js */
 export async function onRequestPost(context) {
   const { request, env } = context;
 
