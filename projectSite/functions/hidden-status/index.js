@@ -1,3 +1,4 @@
+/* Directory Structure: .\functions\api\hidden-status\index.js */
 export async function onRequestPost(context) {
   const { request, env } = context;
 
@@ -22,7 +23,7 @@ export async function onRequestPost(context) {
 
     // 1. Fetch user data object from KV
     if (!env.LIC_DB) {
-      return new Response(JSON.stringify({ success: false, msg: "LIC_DB binding missing in Pages settings" }), {
+      return new Response(JSON.stringify({ success: false, msg: "Internal Server Error" }), {
         status: 200,
         headers: { "Content-Type": "application/json" }
       });
@@ -62,7 +63,7 @@ export async function onRequestPost(context) {
     const messageToSign = `${nonce}|${timestamp}|${hwid}`;
 
     if (!env.RSA_PRIVATE_KEY) {
-      return new Response(JSON.stringify({ success: false, msg: "RSA_PRIVATE_KEY env var missing" }), {
+      return new Response(JSON.stringify({ success: false, msg: "Internal Server Error" }), {
         status: 200,
         headers: { "Content-Type": "application/json" }
       });
@@ -92,14 +93,13 @@ export async function onRequestPost(context) {
     }), { headers: { "Content-Type": "application/json" } });
 
   } catch (err) {
-    // If ANY internal error happens, we package it neatly so your C# app can display it 
-    // instead of showing a blank structure
+    // SECURITY FIX: Do not leak internal error messages or stack traces to the client.
     return new Response(JSON.stringify({ 
       success: false, 
-      payload: `error_catch: ${err.message || err.toString()}`,
+      payload: `error_catch: Internal Server Error`,
       signature: "ERROR"
     }), { 
-      status: 200, // Keep 200 so C# can deserialize the diagnostic strings smoothly
+      status: 200, 
       headers: { "Content-Type": "application/json" } 
     });
   }

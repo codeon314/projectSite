@@ -7,14 +7,15 @@ export async function onRequest(context) {
 
   const signatureBase64 = request.headers.get("X-Admin-Signature");
   const timestamp = request.headers.get("X-Admin-Timestamp");
+  const nonce = request.headers.get("X-Admin-Nonce"); // Require a unique nonce
 
-  if (!signatureBase64 || !timestamp) {
+  if (!signatureBase64 || !timestamp || !nonce) {
     return new Response(JSON.stringify({ success: false, msg: "Missing authentication headers" }), { status: 401 });
   }
 
-  // Prevent Replay Attacks: Reject requests older than 5 minutes
+  // Prevent Replay Attacks: Reject requests older than 30 seconds
   const now = Date.now();
-  if (Math.abs(now - parseInt(timestamp, 10)) > 300000) {
+  if (Math.abs(now - parseInt(timestamp, 10)) > 30000) {
     return new Response(JSON.stringify({ success: false, msg: "Request timestamp expired" }), { status: 401 });
   }
 
@@ -22,6 +23,20 @@ export async function onRequest(context) {
     if (!env.ADMIN_PUBLIC_KEY) {
       return new Response(JSON.stringify({ success: false, msg: "Server missing public key configuration" }), { status: 500 });
     }
+
+    if (!env.NONCE_DB) {
+      return new Response(JSON.stringify({ success: false, msg: "Server missing NONCE_DB configuration" }), { status: 500 });
+    }
+
+    // Check if this exact nonce has been used recently to prevent replay attacks within the 30-second window
+    // We use the dedicated NONCE_DB to store the nonce temporarily, keeping LIC_DB clean.
+    const nonceKey = `admin_nonce_${nonce}`;
+    const isReplay = await env.NONCE_DB.get(nonceKey);
+    if (isReplay) {
+        return new Response(JSON.stringify({ success: false, msg: "Replay attack detected: Nonce already used" }), { status: 401 });
+    }
+    // Store the nonce with a 60-second expiration (minimum TTL for Cloudflare KV)
+    await env.NONCE_DB.put(nonceKey, "used", { expirationTtl: 60 });
 
     // --- SAFE BODY READING LOGIC ---
     let rawBody = "";
@@ -36,8 +51,8 @@ export async function onRequest(context) {
       rawBody = "{}";
     }
 
-    // Reconstruct the exact text layout that C# signed
-    const messageToVerify = `${timestamp}|${rawBody}`;
+    // Reconstruct the exact text layout that C# signed (Includes the nonce)
+    const messageToVerify = `${nonce}|${timestamp}|${rawBody}`;
 
     // Clean up public key PEM from env layout
     const pem = env.ADMIN_PUBLIC_KEY.replace(/\\n/g, '\n').replace(/"/g, '').trim();
@@ -66,12 +81,11 @@ export async function onRequest(context) {
     }
 
     return await context.next();
-	} catch (err) {
-    // This intercepts any hidden crash and passes the real reason straight to your C# inspector pane
+  } catch (err) {
+    // SECURITY FIX: Removed stack trace leakage
     return new Response(JSON.stringify({ 
       success: false, 
-      msg: `Auth Exception: ${err.message}`,
-      stack: err.stack 
+      msg: `Auth Exception: Internal Server Error`
     }), { 
       status: 500,
       headers: { "Content-Type": "application/json" }
