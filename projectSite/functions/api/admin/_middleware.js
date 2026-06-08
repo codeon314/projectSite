@@ -66,8 +66,16 @@ export async function onRequest(context) {
     }
 
     return await context.next();
-  } catch (err) {
-    return new Response(JSON.stringify({ success: false, msg: `Auth Exception: ${err.message}` }), { status: 500 });
+	} catch (err) {
+    // This intercepts any hidden crash and passes the real reason straight to your C# inspector pane
+    return new Response(JSON.stringify({ 
+      success: false, 
+      msg: `Auth Exception: ${err.message}`,
+      stack: err.stack 
+    }), { 
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 }
 
