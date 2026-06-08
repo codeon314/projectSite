@@ -23,8 +23,20 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ success: false, msg: "Server missing public key configuration" }), { status: 500 });
     }
 
-    // Read body text to verify the exact payload signed by C#
-    const rawBody = await request.clone().text();
+    // --- SAFE BODY READING LOGIC ---
+    let rawBody = "";
+    const contentLength = parseInt(request.headers.get("content-length") || "0", 10);
+    
+    if (contentLength > 0) {
+      rawBody = await request.clone().text();
+    }
+
+    // If the client passed an empty payload or empty object, normalize it to match C# serialization
+    if (!rawBody || rawBody.trim() === "" || rawBody === "{}") {
+      rawBody = "{}";
+    }
+
+    // Reconstruct the exact text layout that C# signed
     const messageToVerify = `${timestamp}|${rawBody}`;
 
     // Clean up public key PEM from env layout
@@ -53,10 +65,9 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ success: false, msg: "Invalid cryptographic signature" }), { status: 401 });
     }
 
-    // Pass control to the specific endpoint handler
     return await context.next();
   } catch (err) {
-    return new Response(JSON.stringify({ success: false, msg: `Auth Error: ${err.message}` }), { status: 500 });
+    return new Response(JSON.stringify({ success: false, msg: `Auth Exception: ${err.message}` }), { status: 500 });
   }
 }
 
