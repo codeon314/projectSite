@@ -7,7 +7,7 @@ export async function onRequest(context) {
   // 1. If the request is hitting the API subdomain
   if (hostname === API_DOMAIN) {
     // Allow access to admin and hidden-status endpoints at the root of the subdomain
-    if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/hidden-status')) {
+    if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/verify')) {
       return await context.next();
     }
     // Block everything else (like the frontend HTML or blog comments) on the API subdomain
