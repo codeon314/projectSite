@@ -1,25 +1,49 @@
-// Replace the "export default { async fetch(request, env, ctx) {" wrapper with this:
 export async function onRequestPost(context) {
   const { request, env } = context;
 
   try {
-    const { licenseKey, nonce, hwid } = await request.json();
-
-    if (!licenseKey || !nonce || !hwid) {
-      return new Response(JSON.stringify({ success: false }), { status: 400 });
+    // Read the incoming raw request text first to avoid potential stream reading errors
+    const rawBody = await request.text();
+    if (!rawBody) {
+      return new Response(JSON.stringify({ success: false, msg: "Empty request body" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
-    // 1. Fetch user data object from KV (Notice you match context env bindings)
+    const { licenseKey, nonce, hwid } = JSON.parse(rawBody);
+
+    if (!licenseKey || !nonce || !hwid) {
+      return new Response(JSON.stringify({ success: false, msg: "Missing fields in JSON" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    // 1. Fetch user data object from KV
+    if (!env.LIC_DB) {
+      return new Response(JSON.stringify({ success: false, msg: "LIC_DB binding missing in Pages settings" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
     const rawUserData = await env.LIC_DB.get(licenseKey);
     if (!rawUserData) {
-      return new Response(JSON.stringify({ success: false, msg: "Invalid Key" }), { status: 200 });
+      return new Response(JSON.stringify({ success: false, msg: "Invalid Key" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     let userData = JSON.parse(rawUserData);
 
     // 2. Validate overall license standing
     if (userData.status !== "1") {
-      return new Response(JSON.stringify({ success: false, msg: "Revoked" }), { status: 200 });
+      return new Response(JSON.stringify({ success: false, msg: "Revoked" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // 3. Hardware Lock Logic
@@ -27,14 +51,25 @@ export async function onRequestPost(context) {
       userData.hwid = hwid;
       await env.LIC_DB.put(licenseKey, JSON.stringify(userData));
     } else if (userData.hwid !== hwid) {
-      return new Response(JSON.stringify({ success: false, msg: "HWID Mismatch" }), { status: 200 });
+      return new Response(JSON.stringify({ success: false, msg: "HWID Mismatch" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // 4. Cryptographic signature token generation
     const timestamp = Date.now().toString();
     const messageToSign = `${nonce}|${timestamp}|${hwid}`;
 
-    const privateKeyPem = env.RSA_PRIVATE_KEY.replace(/\\n/g, '\n');
+    if (!env.RSA_PRIVATE_KEY) {
+      return new Response(JSON.stringify({ success: false, msg: "RSA_PRIVATE_KEY env var missing" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    // Clean up key format
+    const privateKeyPem = env.RSA_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, '').trim();
     const privateKeyBuffer = pemToArrayBuffer(privateKeyPem);
     
     const privateKey = await crypto.subtle.importKey(
@@ -57,7 +92,16 @@ export async function onRequestPost(context) {
     }), { headers: { "Content-Type": "application/json" } });
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), { status: 500 });
+    // If ANY internal error happens, we package it neatly so your C# app can display it 
+    // instead of showing a blank structure
+    return new Response(JSON.stringify({ 
+      success: false, 
+      payload: `error_catch: ${err.message || err.toString()}`,
+      signature: "ERROR"
+    }), { 
+      status: 200, // Keep 200 so C# can deserialize the diagnostic strings smoothly
+      headers: { "Content-Type": "application/json" } 
+    });
   }
 }
 
