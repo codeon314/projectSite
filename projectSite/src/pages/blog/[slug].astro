@@ -70,6 +70,11 @@ const parsedReadme = marked.parse(readmeContent);
         <span id="toast-message">System Notification</span>
       </div>
     </div>
+
+    <!-- Lightbox Overlay -->
+    <div id="lightbox-overlay" class="lightbox-overlay">
+      <img id="lightbox-img" class="lightbox-img" src="" alt="Expanded view" />
+    </div>
   </main>
 </Layout>
 
@@ -115,6 +120,24 @@ const parsedReadme = marked.parse(readmeContent);
   article :global(h1), article :global(h2) {
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 0.5rem;
+  }
+
+  /* --- Markdown Image Auto-Scaling & Styling --- */
+  article :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    cursor: zoom-in;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    display: block;
+    margin: 2rem auto;
+    border: 1px solid var(--border-color);
+  }
+  
+  article :global(img:hover) {
+    transform: scale(1.02);
+    box-shadow: 0 4px 15px rgba(0, 229, 255, 0.2);
+    border-color: var(--accent-color);
   }
   
   @media (max-width: 768px) {
@@ -413,6 +436,44 @@ const parsedReadme = marked.parse(readmeContent);
     font-size: 1.2rem;
   }
 
+  /* --- Lightbox Styles --- */
+  .lightbox-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .lightbox-overlay.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .lightbox-img {
+    max-width: 95vw;
+    max-height: 95vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    transform: scale(0.95);
+    transition: transform 0.3s ease;
+    cursor: zoom-out;
+  }
+
+  .lightbox-overlay.is-open .lightbox-img {
+    transform: scale(1);
+  }
+
   @media (max-width: 600px) {
     /* Removed the flex-direction: column override for .comment-card so it stays side-by-side */
     .submit-btn {
@@ -462,6 +523,34 @@ const parsedReadme = marked.parse(readmeContent);
     }, 4000);
   }
 
+  function setupLightbox() {
+    const overlay = document.getElementById('lightbox-overlay');
+    const lightboxImg = document.getElementById('lightbox-img') as HTMLImageElement;
+    const articleImages = document.querySelectorAll('article img');
+
+    if (!overlay || !lightboxImg) return;
+
+    // Clone and replace to prevent duplicate event listeners from ViewTransitions
+    const newOverlay = overlay.cloneNode(true);
+    overlay.replaceWith(newOverlay);
+    const activeOverlay = document.getElementById('lightbox-overlay');
+    const activeLightboxImg = document.getElementById('lightbox-img') as HTMLImageElement;
+
+    articleImages.forEach(img => {
+      img.addEventListener('click', () => {
+        activeLightboxImg.src = (img as HTMLImageElement).src;
+        activeOverlay.classList.add('is-open');
+      });
+    });
+
+    activeOverlay.addEventListener('click', () => {
+      activeOverlay.classList.remove('is-open');
+      setTimeout(() => {
+        activeLightboxImg.src = ''; // Clear src after transition to prevent ghost images
+      }, 300);
+    });
+  }
+
   function setupComments() {
     const form = document.getElementById('comment-form');
     const container = document.getElementById('comments-container');
@@ -471,14 +560,14 @@ const parsedReadme = marked.parse(readmeContent);
     // Clone and replace to prevent duplicate event listeners from ViewTransitions
     const newForm = form.cloneNode(true);
     form.replaceWith(newForm);
-    const activeForm = document.getElementById('comment-form');
+    const activeForm = document.getElementById('comment-form') as HTMLFormElement;
 
     const slug = activeForm.dataset.slug;
     let currentCommentCount = -1;
 
     // Clear any existing polling interval from previous page visits
-    if (window.commentPollInterval) {
-      clearInterval(window.commentPollInterval);
+    if ((window as any).commentPollInterval) {
+      clearInterval((window as any).commentPollInterval);
     }
 
     // Attach input listeners to clear validation highlights and update char counter in real-time
@@ -538,7 +627,7 @@ const parsedReadme = marked.parse(readmeContent);
           const div = document.createElement('div');
           div.className = 'comment-card';
           
-          const dateOptions = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+          const dateOptions: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
           const date = new Date(c.date).toLocaleDateString(undefined, dateOptions);
           
           // Extract first letter for avatar
@@ -624,7 +713,7 @@ const parsedReadme = marked.parse(readmeContent);
         textInput.value = '';
         if (charCounter) charCounter.textContent = '0/1000';
         await loadComments();
-      } catch (err) {
+      } catch (err: any) {
         showToast(err.message || 'Transmission failed. Please try again.');
       } finally {
         btn.disabled = false;
@@ -637,7 +726,7 @@ const parsedReadme = marked.parse(readmeContent);
 
     // Start background polling every 1 second (Near-Instant)
     // We check visibilityState so we don't spam the server if the user switches tabs!
-    window.commentPollInterval = setInterval(() => {
+    (window as any).commentPollInterval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         loadComments(true);
       }
@@ -645,12 +734,15 @@ const parsedReadme = marked.parse(readmeContent);
   }
 
   // Run on initial load and after Astro ViewTransitions
-  document.addEventListener('astro:page-load', setupComments);
+  document.addEventListener('astro:page-load', () => {
+    setupComments();
+    setupLightbox();
+  });
 
   // Clean up the polling interval when navigating away to prevent memory leaks
   document.addEventListener('astro:before-preparation', () => {
-    if (window.commentPollInterval) {
-      clearInterval(window.commentPollInterval);
+    if ((window as any).commentPollInterval) {
+      clearInterval((window as any).commentPollInterval);
     }
   });
 </script>
