@@ -1,0 +1,7 @@
+{
+  "slug": "live-wallpaper-poc",
+  "title": "Hacking the Desktop: Building a C# Live Wallpaper Engine via Windows Internals",
+  "date": "2026-06-09",
+  "description": "A deep dive into Win32 APIs, GDI\u002B rendering, and Z-order manipulation to create a custom Live Wallpaper engine in C#.",
+  "readmePath": "live-wallpaper-poc.md"
+}
