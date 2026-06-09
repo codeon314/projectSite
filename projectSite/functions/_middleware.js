@@ -26,6 +26,35 @@ export async function onRequest(context) {
     });
   }
 
+  // 3. Secure the /scripts/ directory with a Custom Auth Header
+  if (url.pathname.startsWith('/scripts/')) {
+    
+    // Handle CORS Preflight (OPTIONS) request sent by the browser before the actual GET request
+    if (context.request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+          "Access-Control-Allow-Headers": "X-TM-Auth"
+        }
+      });
+    }
+
+    // Check for Authentication on the actual request
+    const tmAuthHeader = context.request.headers.get("X-TM-Auth");
+    
+    // Uses a Cloudflare Environment Variable if set, otherwise falls back to a hardcoded string
+    const expectedSecret = context.env.TM_SCRIPT_SECRET || "super_secret_loader_token_123!"; 
+
+    if (tmAuthHeader !== expectedSecret) {
+      return new Response("403 Forbidden - Unauthorized access.", { 
+        status: 403,
+        headers: { "Content-Type": "text/plain" }
+      });
+    }
+  }
+
   // Allow frontend and /api/comments to pass through normally on the main domain
   return await context.next();
 }
