@@ -1,8 +1,10 @@
 # Hacking the Desktop: Building a C# Live Wallpaper Engine
 
-Ever wondered how applications like Wallpaper Engine manage to draw stunning, animated graphics directly *behind* your desktop icons without interfering with your normal workflow? 
+Ever wondered how applications like Wallpaper Engine manage to draw stunning, animated graphics directly *behind* your desktop icons? 
 
 As someone who loves diving into Windows Internals and pushing the limits of what C# can do outside of standard enterprise applications, I decided to build my own **Live Wallpaper Proof of Concept (PoC)** from scratch. No heavy 3D engines, no bloated wrappers—just raw C#, GDI+, and a handful of Win32 API calls.
+
+**Disclaimer:** I want to be clear up front—this PoC does *not* successfully draw behind the desktop icons like Wallpaper Engine does. Due to how modern Windows composition works, this engine actually acts as a transparent overlay, drawing the animations *over the top* of your desktop icons and workflow. It's a fun experiment in Z-order manipulation, but don't get it twisted thinking this is a perfect background replacement!
 
 Here is a look at the MaterialSkin-based control dashboard for the engine:
 
@@ -12,7 +14,7 @@ Here is a look at the MaterialSkin-based control dashboard for the engine:
 
 The Windows desktop isn't just a static background; it's a deeply nested hierarchy of windows managed by the Desktop Window Manager (DWM) and `explorer.exe`. Specifically, the desktop icons are hosted in a `SysListView32` control, which sits inside a `SHELLDLL_DefView`, which is a child of the `Progman` (Program Manager) window.
 
-To draw *behind* the icons but *above* the actual wallpaper, we have a couple of options. The most stable method—and the one I used in this PoC—is to spawn a custom borderless window and forcefully shove it to the absolute bottom of the Z-order, effectively turning it into the new background.
+To try and integrate with this, we spawn a custom borderless window and forcefully shove it to the bottom of the Z-order. 
 
 ### Spawning the Layered Window
 
@@ -42,7 +44,7 @@ SetLayeredWindowAttributes(myWallpaperWindow, 0, 255, 0x2); // LWA_ALPHA = 0x2
 SetWindowPos(myWallpaperWindow, new IntPtr(1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010); 
 ```
 
-By passing `new IntPtr(1)` (which represents `HWND_BOTTOM`) to `SetWindowPos`, the OS buries our window underneath everything else.
+By passing `new IntPtr(1)` (which represents `HWND_BOTTOM`) to `SetWindowPos`, the OS buries our window underneath most standard applications. However, as mentioned, it still ends up rendering over the `SysListView32` desktop icons.
 
 ## The Render Loop: GDI+ and BitBlt
 
@@ -96,13 +98,17 @@ To make the wallpaper dynamic, I wrote a custom particle engine (`StarParticles.
 
 Instead of just drawing hard-edged circles, I implemented a custom luminance and Gaussian blur routine using `PathGradientBrush` to give the stars a realistic, ambient glow. It calculates the brightness of the generated color and dynamically scales the radius and opacity of the blur.
 
+As you can see in the screenshot below, the stars are clearly rendering *over* the desktop icons, proving this acts as an overlay rather than a true background injection.
+
 ![Live Wallpaper in Action](/blog-assets/live-wallpaper-poc/desktop-rendering.png)
 
 ## The "Hide Insider Watermark" Hack
 
 If you run Windows Insider builds, you are intimately familiar with the annoying activation watermark stuck in the bottom right corner of your screen. 
 
-Because we control the render loop, we can do some highly illegal (and funny) memory manipulation to erase it. If the user toggles the "Show Desktop" checkbox, the engine actually uses `BitBlt` to take a screenshot of the *real* desktop, paints it onto our backbuffer, and then **draws a black rectangle explicitly over the coordinates where the watermark lives** before rendering our stars on top of it.
+Because we control the render loop, we can do some highly illegal (and funny) memory manipulation to erase it. If the user toggles the "Show Desktop" checkbox, the engine actually uses `BitBlt` to take a screenshot of the *real* desktop, paints it onto our backbuffer, and then **draws a black rectangle explicitly over the coordinates where the watermark lives** before rendering our stars on top of it. 
+
+*(Please note: The coordinates used in the code snippet below are hardcoded specifically for a 1080p desktop. If you are using a different resolution, they will not align correctly!)*
 
 ```csharp
 // Direct BitBlt from the actual desktop listview to the backbuffer graphics HDC
@@ -121,7 +127,7 @@ if (HideWatermark)
 {
     // Erase the Windows Insider Watermark!
     g.CompositingMode = CompositingMode.SourceCopy;
-    g.FillRectangle(Brushes.Black, new Rectangle(1626, 1044, 290, 31));
+    g.FillRectangle(blackBrush, new Rectangle(1511, 986, 406, 43));
     g.CompositingMode = CompositingMode.SourceOver;
 }
 ```
