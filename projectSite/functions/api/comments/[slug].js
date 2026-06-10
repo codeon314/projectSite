@@ -95,8 +95,9 @@ export async function onRequestPost({ request, params, env }) {
     const rawText = data.text.trim();
 
     // Strict Regex Patterns (Must match client-side exactly)
+    // Updated to explicitly allow Emojis and Extended Pictographics
     const usernameRegex = /^[a-zA-Z0-9\s]+$/;
-    const textRegex = /^[a-zA-Z0-9\s.,!?'-]+$/;
+    const textRegex = /^[a-zA-Z0-9\s.,!?'\-\p{Emoji}\p{Extended_Pictographic}]+$/u;
 
     // Server-Side Enforcement: Reject instead of silently stripping
     if (!rawUsername || !usernameRegex.test(rawUsername) || rawUsername.length > 50) {
@@ -107,8 +108,35 @@ export async function onRequestPost({ request, params, env }) {
         return new Response(JSON.stringify({ error: "Illegal characters detected in Log Entry or length exceeded. Transmission rejected." }), { status: 400 });
     }
 
+    // 4. Handle Reply Depth Logic
+    let depth = 0;
+    if (data.parentId) {
+        let existingComments = [];
+        if (env && env.COMMENTS_KV) {
+            const commentsStr = await env.COMMENTS_KV.get(`comments_${slug}`);
+            if (commentsStr) existingComments = JSON.parse(commentsStr);
+        } else {
+            const commentsStr = localDevCache.get(`comments_${slug}`);
+            if (commentsStr) existingComments = JSON.parse(commentsStr);
+        }
+
+        const parent = existingComments.find(c => c.id === data.parentId);
+        if (!parent) {
+            return new Response(JSON.stringify({ error: "Parent comment not found." }), { status: 400 });
+        }
+        
+        depth = (parent.depth || 0) + 1;
+        
+        // Enforce maximum reply depth of 10 to prevent recursion attacks/UI breakage
+        if (depth > 10) {
+            return new Response(JSON.stringify({ error: "Maximum reply depth exceeded." }), { status: 400 });
+        }
+    }
+
     const newComment = {
         id: Date.now().toString(),
+        parentId: data.parentId || null,
+        depth: depth,
         username: rawUsername,
         text: rawText,
         date: new Date().toISOString()
