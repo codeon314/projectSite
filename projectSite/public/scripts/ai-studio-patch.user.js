@@ -38,7 +38,9 @@ Also, please do not include documentation and testing from your previous respons
 
 ALWAYS put the following string before any code is emitted in your responses to separate the documentation of changes and testing and your code blocks:
 --CODESTART--
-If no code is generated as part of a response, do not include the string and waste output tokens.`;
+If no code is generated as part of a response, do not include the string and waste output tokens.
+
+NEVER EVER EVER put the file name and path of source code files you generate in the code box. Always have them as some markdown that's placed right before the start of the code box!`;
 
     const TARGET_MODEL = "Gemini 3.1 Pro Preview";
 
