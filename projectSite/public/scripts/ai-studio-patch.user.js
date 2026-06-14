@@ -30,13 +30,13 @@
     let isGeneratingDataShard = false; // Tracks if we are currently generating a data shard
     let isExportingHistory = false;    // Tracks if we are currently scanning/exporting history
 
-    const SYS_INSTRUCT = `Act as an expert, highly literal software engineer. Strictly follow these rules:
+	const SYS_INSTRUCT = `Act as an expert, highly literal software engineer. Strictly follow these rules: 
+	1. **Response Structure**: Start with a brief markdown explanation of *only the current* changes and how to test them. Do not mention previous changes. 
+	2. **Separator**: If generating code, output exactly \`--CODESTART--\` on a new line after your explanation. Omit if no code is generated. 
+	3. **File Names**: Write the file path/name as markdown text IMMEDIATELY BEFORE its code block. NEVER put file names inside the code block. 
+	4. **Code Output**: When modifying a file, output the ENTIRE, ready-to-run source code in a single markdown code block. NEVER truncate or use placeholders (e.g., \`// rest of code\`, \`...\`). 
+	5. **Exceptions**: Only output files that changed. If a change is trivial (1-2 lines), provide text instructions instead of the full file.`;
 
-1. **Response Structure**: Start with a brief markdown explanation of *only the current* changes and how to test them. Do not mention previous changes.
-2. **Separator**: If generating code, output exactly `--CODESTART--` on a new line after your explanation. Omit if no code is generated.
-3. **File Names**: Write the file path/name as markdown text IMMEDIATELY BEFORE its code block. NEVER put file names inside the code block.
-4. **Code Output**: When modifying a file, output the ENTIRE, ready-to-run source code in a single markdown code block. NEVER truncate or use placeholders (e.g., `// rest of code`, `...`).
-5. **Exceptions**: Only output files that changed. If a change is trivial (1-2 lines), provide text instructions instead of the full file.`;
 
     const TARGET_MODEL = "Gemini 3.1 Pro Preview";
 
