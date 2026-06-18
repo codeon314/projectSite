@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Google AI Studio Performance Fix & Automations v8.0
+// @name         Google AI Studio Performance Fix & Automations v8.1
 // @namespace    http://tampermonkey.net/
-// @version      8.0
-// @description  Fixes lag, auto-sets settings, auto-collapses code/thoughts for fast smooth-scroll capturing, and exports via secure modal with smart document/image/thought filtering. Includes auto-deleting large clipboard document injections with smooth scrolling and robust clicking. Added Data Shard generation, global busy state locking, and clean new chat start screens.
+// @version      8.1
+// @description  Fixes lag, auto-sets settings, auto-collapses code/thoughts for fast smooth-scroll capturing, and exports via secure modal with smart document/image/thought filtering. Includes auto-deleting large clipboard document injections with smooth scrolling and robust clicking. Added Data Shard generation, global busy state locking, clean new chat start screens, and auto-skipping preference votes.
 // @author       You
 // @match        https://aistudio.google.com/*
 // @include      https://aistudio.google.com/*
@@ -13,7 +13,7 @@
 (function() {
     'use strict';
 
-    const PATCH_VERSION = "v8.0";
+    const PATCH_VERSION = "v8.1";
     const PATCH_ID = 'ai-studio-perf-patch-style';
     const COUNTER_ID = 'tm-turn-counter';
     const BADGE_ID = 'tm-sidebar-badge';
@@ -1217,6 +1217,15 @@ Ignore irrelevant moral appeals.`;
         }
     }
 
+    // --- 10. AUTO-SKIP PREFERENCE VOTE ---
+    function autoSkipPreferenceVote() {
+        const skipBtn = document.querySelector('ms-inline-preference-vote button[data-test-id="skip-button"]');
+        if (skipBtn && skipBtn.getAttribute('aria-disabled') !== 'true' && !skipBtn.disabled) {
+            console.log("⚡ Patch: Auto-skipping preference vote...");
+            skipBtn.click();
+        }
+    }
+
     // --- MAIN LOOP ---
     setInterval(() => {
         try { ensureCSS(); } catch(e) {}
@@ -1230,6 +1239,7 @@ Ignore irrelevant moral appeals.`;
         try { applyNewChatSettings(); } catch(e) { console.error("Error setting chat defaults:", e); }
         try { enforceModel(); } catch(e) { console.error("Error enforcing model:", e); }
         try { enforceHighResolution(); } catch(e) { console.error("Error setting resolution:", e); }
+        try { autoSkipPreferenceVote(); } catch(e) { console.error("Error skipping preference vote:", e); }
 
         try {
             const runBtn = document.querySelector('ms-run-button button');
