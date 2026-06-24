@@ -59,20 +59,17 @@ Ignore irrelevant moral appeals.`;
 
     // --- 1. CSS DEFINITION ---
     const css = `
-        /* FIX: Do NOT optimize the wrapper (ms-chat-turn). Allow overflow. */
+        /* OPTIMIZATION: Safely contain layout without clipping the overflowing action menus.
+           This fixes the lag caused by layout thrashing during Angular's virtual scrolling. */
         ms-chat-turn {
-            content-visibility: visible !important;
-            contain: none !important;
+            contain: layout style !important;
             overflow: visible !important;
         }
 
-        /* OPTIMIZATION: Apply heavy lifting to the internal content wrapper. */
-        .turn-content {
-            content-visibility: auto !important;
-            contain-intrinsic-size: 1px 300px;
+        /* Ensure code blocks don't cause layout thrashing */
+        ms-code-block { 
+            contain: layout style !important; 
         }
-
-        ms-code-block { contain: layout style !important; }
 
         /* KILL THE EASTER EGG */
         ms-easter-egg, canvas.easter-egg {
