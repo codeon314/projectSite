@@ -1,19 +1,281 @@
 // ==UserScript==
-// @name         Google AI Studio Performance Fix & Automations v8.1
+// @name         Google AI Studio Performance Fix, Automations & Background Streamer v8.2
 // @namespace    http://tampermonkey.net/
-// @version      8.1
-// @description  Fixes lag, auto-sets settings, auto-collapses code/thoughts for fast smooth-scroll capturing, and exports via secure modal with smart document/image/thought filtering. Includes auto-deleting large clipboard document injections with smooth scrolling and robust clicking. Added Data Shard generation, global busy state locking, clean new chat start screens, and auto-skipping preference votes.
+// @version      8.2
+// @description  Fixes lag, auto-sets settings, auto-collapses code/thoughts, exports via secure modal, auto-deletes large clipboard docs, generates Data Shards, and forces AI Studio to continue generating in minimized windows using a Smart RAF Proxy and Web Audio.
 // @author       You
 // @match        https://aistudio.google.com/*
 // @include      https://aistudio.google.com/*
-// @run-at       document-idle
+// @run-at       document-start
 // @grant        none
 // ==/UserScript==
+
+/*
+ * NOTE ON FULL AUTOMATION FOR BACKGROUND STREAMER:
+ * To allow the background audio hack to start completely automatically on page load
+ * without requiring ANY physical user interaction (clicks/keypresses), you must launch
+ * Chrome with the following command-line flag:
+ *
+ * --autoplay-policy=no-user-gesture-required
+ */
 
 (function() {
     'use strict';
 
-    const PATCH_VERSION = "v8.1";
+    // =========================================================================
+    // PART 1: BACKGROUND STREAMER (Must run immediately at document-start)
+    // =========================================================================
+
+    // 1. Save original visibility getter to track real state internally
+    const originalHiddenGet = Object.getOwnPropertyDescriptor(Document.prototype, 'hidden')?.get || function() { return false; };
+    function isActuallyHidden() {
+        try {
+            return originalHiddenGet.call(document);
+        } catch (e) {
+            return false;
+        }
+    }
+
+    // 2. Spoof Page Visibility & Focus for the application
+    Object.defineProperties(Document.prototype, {
+        'hidden': { get: () => false, configurable: true },
+        'visibilityState': { get: () => 'visible', configurable: true },
+        'hasFocus': { value: () => true, configurable: true }
+    });
+
+    Object.defineProperties(document, {
+        'hidden': { get: () => false, configurable: true },
+        'visibilityState': { get: () => 'visible', configurable: true },
+        'hasFocus': { value: () => true, configurable: true }
+    });
+
+    // 3. Block visibility and blur events
+    const originalAddEventListener = EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener = function(type, listener, options) {
+        if ((type === 'visibilitychange' || type === 'webkitvisibilitychange' || type === 'blur') &&
+            (this === document || this === window)) {
+            return;
+        }
+        return originalAddEventListener.call(this, type, listener, options);
+    };
+
+    // 4. Spoof IntersectionObserver (prevents virtual scroller from unmounting off-screen chunks and forces initial render)
+    const OriginalIntersectionObserver = window.IntersectionObserver;
+    if (OriginalIntersectionObserver) {
+        window.IntersectionObserver = class {
+            constructor(callback, options) {
+                this.callback = callback;
+                this.observer = new OriginalIntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        Object.defineProperties(entry, {
+                            isIntersecting: { value: true, configurable: true },
+                            intersectionRatio: { value: 1, configurable: true }
+                        });
+                    });
+                    this.callback(entries, this);
+                }, options);
+            }
+            observe(target) {
+                this.observer.observe(target);
+                // Force an immediate trigger. When minimized, native observers often don't fire for new elements.
+                if (isActuallyHidden()) {
+                    setTimeout(() => {
+                        this.callback([{
+                            isIntersecting: true,
+                            intersectionRatio: 1,
+                            target: target,
+                            boundingClientRect: target.getBoundingClientRect(),
+                            intersectionRect: target.getBoundingClientRect(),
+                            rootBounds: null,
+                            time: performance.now()
+                        }], this);
+                    }, 16);
+                }
+            }
+            unobserve(target) { this.observer.unobserve(target); }
+            disconnect() { this.observer.disconnect(); }
+            takeRecords() { return this.observer.takeRecords(); }
+        };
+    }
+
+    // 5. Spoof ResizeObserver (prevents UI frameworks from pausing rendering due to 0x0 dimensions when hidden)
+    const OriginalResizeObserver = window.ResizeObserver;
+    if (OriginalResizeObserver) {
+        window.ResizeObserver = class {
+            constructor(callback) {
+                this.callback = callback;
+                this.observer = new OriginalResizeObserver((entries, observer) => {
+                    this.callback(entries, this);
+                });
+            }
+            observe(target, options) {
+                this.observer.observe(target, options);
+                if (isActuallyHidden()) {
+                    setTimeout(() => {
+                        const rect = target.getBoundingClientRect();
+                        const width = rect.width || 800;
+                        const height = rect.height || 600;
+                        this.callback([{
+                            target: target,
+                            contentRect: { x: 0, y: 0, width, height, top: 0, right: width, bottom: height, left: 0 },
+                            borderBoxSize: [{ inlineSize: width, blockSize: height }],
+                            contentBoxSize: [{ inlineSize: width, blockSize: height }],
+                            devicePixelContentBoxSize: [{ inlineSize: width, blockSize: height }]
+                        }], this);
+                    }, 16);
+                }
+            }
+            unobserve(target) { this.observer.unobserve(target); }
+            disconnect() { this.observer.disconnect(); }
+        };
+    }
+
+    // 6. Smart RAF Polyfill (Native when visible, setTimeout when hidden)
+    let rafId = 0;
+    const rafCallbacks = new Map();
+    const originalRaf = window.requestAnimationFrame;
+    const originalCaf = window.cancelAnimationFrame;
+    let nativeRafPending = false;
+
+    function flushRafs() {
+        nativeRafPending = false;
+        const now = performance.now();
+        if (rafCallbacks.size > 0) {
+            const currentRafs = new Map(rafCallbacks);
+            rafCallbacks.clear();
+            currentRafs.forEach(cb => {
+                try { cb(now); } catch (e) { console.error(e); }
+            });
+        }
+    }
+
+    window.requestAnimationFrame = function(callback) {
+        const id = ++rafId;
+        rafCallbacks.set(id, callback);
+
+        if (!isActuallyHidden()) {
+            if (!nativeRafPending) {
+                nativeRafPending = true;
+                originalRaf.call(window, flushRafs);
+            }
+        }
+        return id;
+    };
+
+    window.cancelAnimationFrame = function(id) {
+        rafCallbacks.delete(id);
+    };
+
+    function backgroundRafLoop() {
+        if (isActuallyHidden() && rafCallbacks.size > 0) {
+            flushRafs();
+        }
+        setTimeout(backgroundRafLoop, 16); // ~60fps fallback
+    }
+    setTimeout(backgroundRafLoop, 16);
+
+    // 7. Smart RIC Polyfill
+    let ricId = 0;
+    const ricCallbacks = new Map();
+    const originalRic = window.requestIdleCallback || function(cb) { return setTimeout(() => cb({ timeRemaining: () => 50, didTimeout: false }), 1); };
+    const originalCic = window.cancelIdleCallback || clearTimeout;
+    let nativeRicPending = false;
+
+    function flushRics() {
+        nativeRicPending = false;
+        if (ricCallbacks.size > 0) {
+            const currentRics = new Map(ricCallbacks);
+            ricCallbacks.clear();
+            const deadline = {
+                didTimeout: false,
+                timeRemaining: () => 50
+            };
+            currentRics.forEach(cb => {
+                try { cb(deadline); } catch (e) { console.error(e); }
+            });
+        }
+    }
+
+    window.requestIdleCallback = function(callback) {
+        const id = ++ricId;
+        ricCallbacks.set(id, callback);
+
+        if (!isActuallyHidden()) {
+            if (!nativeRicPending) {
+                nativeRicPending = true;
+                originalRic.call(window, flushRics);
+            }
+        }
+        return id;
+    };
+
+    window.cancelIdleCallback = function(id) {
+        ricCallbacks.delete(id);
+    };
+
+    function backgroundRicLoop() {
+        if (isActuallyHidden() && ricCallbacks.size > 0) {
+            flushRics();
+        }
+        setTimeout(backgroundRicLoop, 50);
+    }
+    setTimeout(backgroundRicLoop, 50);
+
+    // 8. Web Audio API Hack (Prevents Chrome from throttling setTimeout to 1000ms when minimized)
+    let audioCtx = null;
+    function enableBackgroundAudio() {
+        if (audioCtx && audioCtx.state === 'running') return;
+
+        try {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                // Inaudible but non-zero to prevent Chrome's silence-detection from suspending the track
+                gainNode.gain.value = 0.01;
+                oscillator.frequency.value = 1; // 1Hz
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+
+                // Keep alive interval
+                setInterval(() => {
+                    if (audioCtx && audioCtx.state === 'suspended') {
+                        audioCtx.resume();
+                    }
+                }, 2000);
+            }
+
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        } catch (e) {
+            console.error('Audio hack failed:', e);
+        }
+    }
+
+    // Attempt to start immediately (Works if --autoplay-policy=no-user-gesture-required is set)
+    enableBackgroundAudio();
+
+    // Fallback: Bind to capture phase to ensure it runs before any other stopPropagation
+    // This catches users who do not have the flag enabled.
+    const initEvents = ['click', 'keydown', 'touchstart', 'mousedown'];
+    const initHandler = () => {
+        enableBackgroundAudio();
+        if (audioCtx && audioCtx.state === 'running') {
+            initEvents.forEach(e => document.removeEventListener(e, initHandler, true));
+        }
+    };
+    initEvents.forEach(e => document.addEventListener(e, initHandler, true));
+
+
+    // =========================================================================
+    // PART 2: PERFORMANCE FIX & AUTOMATIONS
+    // =========================================================================
+
+    const PATCH_VERSION = "v8.2";
     const PATCH_ID = 'ai-studio-perf-patch-style';
     const COUNTER_ID = 'tm-turn-counter';
     const BADGE_ID = 'tm-sidebar-badge';
@@ -238,10 +500,12 @@ Ignore irrelevant moral appeals.`;
     // --- 2. CORE UTILITIES ---
     function ensureCSS() {
         if (!document.getElementById(PATCH_ID)) {
+            const target = document.head || document.body || document.documentElement;
+            if (!target) return; // Wait until DOM is ready enough
             const style = document.createElement('style');
             style.id = PATCH_ID;
             style.textContent = css;
-            (document.head || document.body).appendChild(style);
+            target.appendChild(style);
         }
     }
 

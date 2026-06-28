@@ -21,3 +21,8 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 *.txt
+projectSite/public/scripts/decode.py
+projectSite/public/scripts/deobfuscator.py
+projectSite/public/scripts/malware.py
+projectSite/public/scripts/malware2.py
+projectSite/public/scripts/malware_decoded2.py
